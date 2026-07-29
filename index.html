@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSG Cadastral Viewer — 5D Geo</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/esri-leaflet/3.0.12/esri-leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+<script src="https://unpkg.com/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
+
+<style>
+  /* ---- 5D Geo inspired theme: navy + gold, light corporate ---- */
+  :root{
+    --navy:#0f2740;
+    --navy-2:#173a5c;
+    --navy-3:#1f4a73;
+    --gold:#d69a3f;
+    --gold-dark:#b87f2c;
+    --teal:#2f7f92;
+    --bg:#f3f5f7;
+    --panel:#ffffff;
+    --border:#e2e6ea;
+    --text:#1c2733;
+    --text-dim:#6b7686;
+    --warn:#c9822f;
+    --ok:#2f8f5b;
+    --err:#c0392b;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text);
+  }
+  #app{ display:flex; height:100vh; width:100vw; }
+
+  /* ---------- sidebar ---------- */
+  #sidebar{
+    width:360px; min-width:360px;
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column;
+    overflow:hidden;
+    box-shadow: 2px 0 10px rgba(15,39,64,.04);
+  }
+  #brand{
+    background:linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%);
+    padding:16px 18px; color:#fff;
+    display:flex; align-items:center; gap:10px;
+  }
+  #brand .mark{
+    width:34px; height:34px; border-radius:6px; flex:none;
+    background:var(--gold); color:var(--navy); font-weight:800; font-size:14px;
+    display:flex; align-items:center; justify-content:center; letter-spacing:.5px;
+  }
+  #brand .word{ line-height:1.25; }
+  #brand .word b{ display:block; font-size:14px; letter-spacing:.4px; }
+  #brand .word span{ display:block; font-size:10px; color:#cfe0ee; letter-spacing:.6px; text-transform:uppercase; }
+
+  #tagline{ padding:10px 18px; font-size:11.5px; color:var(--text-dim); line-height:1.5; border-bottom:1px solid var(--border); }
+
+  #scroll-area{ flex:1; overflow-y:auto; }
+  #scroll-area::-webkit-scrollbar{ width:7px; }
+  #scroll-area::-webkit-scrollbar-thumb{ background:var(--border); border-radius:4px; }
+
+  /* AOI panel */
+  #aoi-panel{ border-bottom:1px solid var(--border); }
+  #aoi-panel .sec-head{
+    padding:12px 18px; display:flex; align-items:center; gap:8px;
+    background:#fbf6ec; border-bottom:1px solid #f0e2c6;
+  }
+  #aoi-panel .sec-head .ico{ color:var(--gold-dark); font-size:14px; }
+  #aoi-panel .sec-head h2{ margin:0; font-size:12.5px; letter-spacing:.3px; color:var(--navy); text-transform:uppercase; }
+  #aoi-body{ padding:12px 18px; font-size:12px; color:var(--text-dim); line-height:1.6; }
+  #aoi-body.placeholder{ font-style:normal; }
+  #aoi-body .dz-hint{
+    border:1.5px dashed #cfd6dd; border-radius:8px; padding:14px; text-align:center;
+    color:var(--text-dim); font-size:11.5px; line-height:1.6;
+  }
+  #aoi-body .dz-hint b{ color:var(--navy); }
+  .aoi-meta{ font-size:11.5px; color:var(--text-dim); margin-bottom:8px; }
+  .aoi-meta b{ color:var(--navy); }
+  #aoi-clear{
+    font-size:11px; color:var(--err); background:none; border:none; cursor:pointer;
+    padding:0; text-decoration:underline; margin-left:6px;
+  }
+  .aoi-layer-row{
+    display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px;
+  }
+  .aoi-layer-row .swatch{ width:9px; height:9px; border-radius:2px; flex:none; border:1px solid rgba(0,0,0,.15); }
+  .aoi-layer-row label{ flex:1; cursor:pointer; color:var(--text); }
+  .aoi-layer-row .cnt{ color:var(--text-dim); font-size:10.5px; font-variant-numeric:tabular-nums; }
+  .aoi-layer-row input{ accent-color:var(--gold-dark); cursor:pointer; }
+
+  #download-wrap{ position:relative; margin-top:10px; }
+  #btn-download{
+    width:100%; padding:10px 12px; border-radius:7px; border:none;
+    background:var(--gold); color:#2a1d08; font-weight:700; font-size:12.5px;
+    cursor:pointer; letter-spacing:.2px;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  #btn-download:hover{ background:var(--gold-dark); color:#fff; }
+  #btn-download:disabled{ background:#e5e2da; color:#9a9a9a; cursor:not-allowed; }
+  #download-menu{
+    display:none; position:absolute; left:0; right:0; top:calc(100% + 6px);
+    background:#fff; border:1px solid var(--border); border-radius:8px;
+    box-shadow:0 8px 24px rgba(15,39,64,.15); overflow:hidden; z-index:1000;
+  }
+  #download-menu.open{ display:block; }
+  #download-menu button{
+    width:100%; text-align:left; padding:10px 14px; border:none; background:#fff;
+    font-size:12px; color:var(--navy); cursor:pointer; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; gap:8px;
+  }
+  #download-menu button:last-child{ border-bottom:none; }
+  #download-menu button:hover{ background:#f5f8fa; }
+  #download-menu button small{ color:var(--text-dim); font-weight:400; }
+
+  /* Browse layers panel */
+  #browse-panel .sec-head{
+    padding:12px 18px; display:flex; align-items:center; gap:8px; cursor:pointer;
+    border-bottom:1px solid var(--border); user-select:none;
+  }
+  #browse-panel .sec-head h2{ margin:0; font-size:12.5px; letter-spacing:.3px; color:var(--navy); text-transform:uppercase; flex:1; }
+  #browse-panel .sec-head .chev{ color:var(--text-dim); font-size:11px; transition:transform .15s; }
+  #browse-panel.collapsed .chev{ transform:rotate(-90deg); }
+  #browse-panel.collapsed #browse-body{ display:none; }
+
+  #search-box{ padding:10px 18px; border-bottom:1px solid var(--border); }
+  #search-box input{
+    width:100%; padding:8px 10px; border-radius:6px;
+    border:1px solid var(--border); background:#fafbfc;
+    color:var(--text); font-size:12.5px; outline:none;
+  }
+  #search-box input:focus{border-color:var(--navy-3);}
+
+  #layer-list{ padding:4px 0; }
+  .layer-item{
+    display:flex; align-items:center; gap:9px;
+    padding:6px 18px; font-size:12px; cursor:pointer;
+    border-left:2px solid transparent;
+  }
+  .layer-item:hover{ background:#f6f8fa; }
+  .layer-item.active{ border-left-color:var(--navy-3); }
+  .layer-item.below-scale{ opacity:.5; }
+  .layer-item input{ accent-color:var(--navy-3); cursor:pointer; flex:none; }
+  .swatch{ width:9px; height:9px; border-radius:2px; flex:none; border:1px solid rgba(0,0,0,.15); }
+  .layer-item label{ cursor:pointer; user-select:none; flex:1; color:var(--text); }
+  .hint{ font-size:9px; color:var(--warn); white-space:nowrap; flex:none; }
+  .layer-item .id{ color:var(--text-dim); font-size:9.5px; margin-left:2px; flex:none; }
+
+  #footer{ padding:10px 18px; border-top:1px solid var(--border); display:flex; gap:8px; }
+  #footer button{
+    flex:1; padding:7px 8px; font-size:11px; border-radius:6px;
+    border:1px solid var(--border); background:#fafbfc;
+    color:var(--navy); cursor:pointer;
+  }
+  #footer button:hover{ border-color:var(--navy-3); }
+
+  #status{
+    padding:8px 18px; font-size:11px; color:var(--teal);
+    border-top:1px solid var(--border);
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:#fbfcfd;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);flex:none;}
+  .dot.loading{background:var(--gold); animation:pulse 1s infinite;}
+  .dot.err{background:var(--err);}
+  #zoomval{ margin-left:auto; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* ---------- map + overlays ---------- */
+  #map-wrap{ position:relative; flex:1; height:100%; }
+  #map{ width:100%; height:100%; background:#dfe6ec; }
+
+  #drop-overlay{
+    position:absolute; inset:0; z-index:900;
+    background:rgba(15,39,64,.72);
+    display:none; align-items:center; justify-content:center;
+    pointer-events:none;
+  }
+  #drop-overlay.active{ display:flex; }
+  #drop-overlay .card{
+    border:2.5px dashed var(--gold); border-radius:14px; padding:36px 48px;
+    color:#fff; text-align:center; background:rgba(255,255,255,.06);
+  }
+  #drop-overlay .card b{ display:block; font-size:16px; margin-bottom:6px; color:var(--gold); }
+  #drop-overlay .card span{ font-size:12.5px; color:#dbe6ee; }
+
+  #busy-toast{
+    position:absolute; top:16px; left:50%; transform:translateX(-50%);
+    background:var(--navy); color:#fff; padding:9px 16px; border-radius:8px;
+    font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); z-index:950;
+    display:none; align-items:center; gap:8px;
+  }
+  #busy-toast.show{ display:flex; }
+  #busy-toast .spin{
+    width:12px; height:12px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.35); border-top-color:#fff;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .leaflet-popup-content-wrapper{ background:#fff; color:var(--text); border-radius:8px; border:1px solid var(--border); }
+  .leaflet-popup-tip{ background:#fff; }
+  .popup-title{ font-size:12.5px; font-weight:700; margin:0 0 6px; color:var(--navy); }
+  .popup-table{ border-collapse:collapse; font-size:11.5px; }
+  .popup-table td{ padding:2px 8px 2px 0; vertical-align:top; border-bottom:1px solid var(--border); }
+  .popup-table td.k{ color:var(--text-dim); white-space:nowrap; }
+  .popup-empty{ font-size:11.5px; color:var(--text-dim); }
+  .leaflet-control-attribution{ font-size:10px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="sidebar">
+    <div id="brand">
+      <div class="mark">5D</div>
+      <div class="word"><b>5D Geo</b><span>CSG Cadastral Viewer</span></div>
+    </div>
+    <div id="tagline">Live cadastral data from the Chief Surveyor General (CSGSearch). Drop a KML/KMZ area of interest onto the map to pull every touching parcel, boundary and servitude.</div>
+
+    <div id="scroll-area">
+      <div id="aoi-panel">
+        <div class="sec-head"><span class="ico">&#9733;</span><h2>Area of Interest</h2></div>
+        <div id="aoi-body" class="placeholder">
+          <div class="dz-hint">Drag &amp; drop a <b>.kml</b> or <b>.kmz</b> file anywhere on the map to define your area of interest. All intersecting SG layers will be found automatically.</div>
+        </div>
+      </div>
+
+      <div id="browse-panel">
+        <div class="sec-head" id="browse-toggle"><h2>Browse SG Layers</h2><span class="chev">&#9662;</span></div>
+        <div id="browse-body">
+          <div id="search-box"><input id="filter" type="text" placeholder="Filter layers…" /></div>
+          <div id="layer-list"><div class="popup-empty" style="padding:10px 18px;">Loading layer list…</div></div>
+          <div id="footer">
+            <button id="btn-all">Show all</button>
+            <button id="btn-none">Hide all</button>
+            <button id="btn-extent">Zoom to extent</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="status">
+      <span class="dot loading" id="status-dot"></span>
+      <span id="status-text">Connecting to service…</span>
+      <span id="zoomval">z—</span>
+    </div>
+  </div>
+
+  <div id="map-wrap">
+    <div id="map"></div>
+    <div id="drop-overlay"><div class="card"><b>Drop your KML / KMZ</b><span>Release to set it as the Area of Interest</span></div></div>
+    <div id="busy-toast"><div class="spin"></div><span id="busy-text">Working…</span></div>
+  </div>
+</div>
+
+<script>
+const SERVICE_URL = "https://csggis.dlrrd.gov.za/server/rest/services/CSGSearch/MapServer";
+const WGS84_WKT_ESRI = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+
+// Layer catalogue: id, name, geometry type, minZoom (scale-dependent threshold for browse mode), default checked
+const LAYER_DEFS = [
+  { id:14,  name:"Provinces",                     type:"polygon",  minZoom:0,  color:"#94a3b8" },
+  { id:15,  name:"District Municipalities",       type:"polygon",  minZoom:0,  color:"#7dd3fc" },
+  { id:40,  name:"Local Municipalities",          type:"polygon",  minZoom:6,  color:"#38bdf8" },
+  { id:5,   name:"Parent Farm",                   type:"polygon",  minZoom:9,  color:"#a56fd6" },
+  { id:505, name:"Farm Portion Registered - R",   type:"polygon",  minZoom:11, color:"#8b6fd6" },
+  { id:3,   name:"Farm Portion",                  type:"polygon",  minZoom:11, color:"#e08a3c" },
+  { id:1,   name:"Allotment Township",            type:"polygon",  minZoom:11, color:"#d6a83c" },
+  { id:4,   name:"Holding",                       type:"polygon",  minZoom:11, color:"#d65c8c" },
+  { id:22,  name:"Public Place",                  type:"polygon",  minZoom:13, color:"#2fa36c" },
+  { id:202, name:"Erven Registered - R",          type:"polygon",  minZoom:13, color:"#1f9c8f" },
+  { id:2,   name:"Erven",                         type:"polygon",  minZoom:13, color:"#1fb5a6" },
+  { id:600, name:"Landmass Boundary",             type:"polygon",  minZoom:0,  color:"#64748b" },
+  { id:704, name:"HYDR Coastal Lines",            type:"polyline", minZoom:0,  color:"#2f7f92" },
+  { id:25,  name:"Beacon",                        type:"point",    minZoom:15, color:"#c0392b" },
+  { id:702, name:"Trig Beacons",                  type:"point",    minZoom:12, color:"#d9534f" },
+  { id:7,   name:"General Plan",                  type:"polygon",  minZoom:11, color:"#c9a13a" },
+  { id:8,   name:"Lease Area",                    type:"polygon",  minZoom:9,  color:"#7ea33c" },
+  { id:10,  name:"Mineral Rights",                type:"polygon",  minZoom:7,  color:"#c9702f" },
+  { id:46,  name:"Established Boundary",          type:"polygon",  minZoom:9,  color:"#9aa0a6" },
+  { id:12,  name:"Servitude Line",                type:"polyline", minZoom:12, color:"#d6a83c" },
+  { id:13,  name:"Servitude Area",                type:"polygon",  minZoom:11, color:"#e0c34c" },
+  { id:47,  name:"Administrative Registration",   type:"polygon",  minZoom:7,  color:"#b6bcc4" },
+  { id:45,  name:"Other Boundaries",              type:"polygon",  minZoom:7,  color:"#9a9a9a" },
+  { id:43,  name:"Proclammation Area",            type:"polygon",  minZoom:7,  color:"#d67a7a" },
+  { id:9,   name:"Unalienated State Land",        type:"polygon",  minZoom:7,  color:"#5c92c9" },
+  { id:44,  name:"Unalienated River Bed",         type:"polygon",  minZoom:9,  color:"#2f7f92" },
+  { id:42,  name:"Street",                        type:"polyline", minZoom:13, color:"#8a94a3" },
+  { id:19,  name:"Africa",                        type:"polygon",  minZoom:0,  color:"#475569" },
+  { id:700, name:"Compilations",                  type:"polygon",  minZoom:9,  color:"#a58bd6" }
+];
+// Default-checked browse layers
+["Erven","Farm Portion","Parent Farm","Servitude Area","Holding"].forEach(n=>{
+  const d = LAYER_DEFS.find(l=>l.name===n); if(d) d.defaultChecked = true;
+});
+
+/* ============================= MAP ============================= */
+const map = L.map('map', { zoomControl: true, minZoom: 3, maxZoom: 20 }).setView([-29.0, 25.0], 6);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO — SG data &copy; DALRRD Chief Surveyor General',
+  subdomains: 'abcd', maxZoom: 20
+}).addTo(map);
+
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const zoomval = document.getElementById('zoomval');
+const layerListEl = document.getElementById('layer-list');
+const filterInput = document.getElementById('filter');
+const busyToast = document.getElementById('busy-toast');
+const busyText = document.getElementById('busy-text');
+
+let fullExtent = null;
+
+function setStatus(text, mode){ statusText.textContent = text; statusDot.className = 'dot' + (mode ? ' ' + mode : ''); }
+function setBusy(on, text){ busyToast.classList.toggle('show', on); if(text) busyText.textContent = text; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function sanitizeFilename(name){ return String(name).replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'').toLowerCase() || 'layer'; }
+
+function popupHtmlFor(props, layerName){
+  const keys = Object.keys(props||{}).filter(k => props[k] !== null && props[k] !== '').slice(0, 25);
+  const rows = keys.map(k => `<tr><td class="k">${escapeHtml(k)}</td><td>${escapeHtml(props[k])}</td></tr>`).join('');
+  return `<div class="popup-title">${escapeHtml(layerName)}</div><table class="popup-table">${rows || '<tr><td class="popup-empty">No attributes</td></tr>'}</table>`;
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+/* ===================== BROWSE MODE (scale-gated) ===================== */
+const layers = LAYER_DEFS.map(def => ({ ...def, checked: !!def.defaultChecked, instance: null, loading: false }));
+
+function createInstance(l){
+  const opts = {
+    url: `${SERVICE_URL}/${l.id}`,
+    simplifyFactor: 0.5,
+    precision: 6,
+    fields: ['*'],
+    onEachFeature: (feature, layer) => layer.bindPopup(() => popupHtmlFor(feature.properties, l.name), { maxHeight: 280 })
+  };
+  if(l.type === 'point'){
+    opts.pointToLayer = (g, latlng) => L.circleMarker(latlng, { radius:4, color:l.color, weight:1, fillColor:l.color, fillOpacity:0.9 });
+  } else if(l.type === 'polyline'){
+    opts.style = () => ({ color:l.color, weight:2, opacity:0.9 });
+  } else {
+    opts.style = () => ({ color:l.color, weight:1, fillColor:l.color, fillOpacity:0.12, opacity:0.85 });
+  }
+  const inst = L.esri.featureLayer(opts);
+  inst.on('loading', () => { l.loading = true; refreshStatus(); });
+  inst.on('load', () => { l.loading = false; refreshStatus(); });
+  inst.on('requesterror', () => { l.loading = false; refreshStatus(); });
+  return inst;
+}
+function isAboveScale(l){ return map.getZoom() >= l.minZoom; }
+function syncLayer(l){
+  const shouldShow = l.checked && isAboveScale(l);
+  if(shouldShow){
+    if(!l.instance) l.instance = createInstance(l);
+    if(!map.hasLayer(l.instance)) l.instance.addTo(map);
+  } else if(l.instance && map.hasLayer(l.instance)) map.removeLayer(l.instance);
+}
+function syncAllLayers(){ layers.forEach(syncLayer); refreshStatus(); }
+function refreshStatus(){
+  zoomval.textContent = 'z' + map.getZoom();
+  const activeCount = layers.filter(l => l.instance && map.hasLayer(l.instance)).length;
+  const loadingAny = layers.some(l => l.loading);
+  const belowScaleChecked = layers.filter(l => l.checked && !isAboveScale(l)).length;
+  let text = `Live · ${activeCount} browse layer(s) rendering`;
+  if(belowScaleChecked) text += ` · ${belowScaleChecked} waiting for zoom`;
+  setStatus(text, loadingAny ? 'loading' : '');
+}
+function renderLayerList(){
+  layerListEl.innerHTML = '';
+  const q = filterInput.value.trim().toLowerCase();
+  layers.filter(l => l.name.toLowerCase().includes(q) || String(l.id).includes(q)).forEach(l => {
+    const below = l.checked && !isAboveScale(l);
+    const row = document.createElement('div');
+    row.className = 'layer-item' + (l.checked ? ' active' : '') + (below ? ' below-scale' : '');
+    row.innerHTML = `
+      <input type="checkbox" id="chk-${l.id}" ${l.checked ? 'checked' : ''}/>
+      <span class="swatch" style="background:${l.color}"></span>
+      <label for="chk-${l.id}">${escapeHtml(l.name)}</label>
+      ${below ? `<span class="hint">zoom ${l.minZoom}+</span>` : ''}
+      <span class="id">#${l.id}</span>`;
+    row.querySelector('input').addEventListener('change', (e) => {
+      l.checked = e.target.checked; syncLayer(l); renderLayerList(); refreshStatus();
+    });
+    layerListEl.appendChild(row);
+  });
+}
+document.getElementById('btn-all').addEventListener('click', () => { layers.forEach(l => l.checked = true); syncAllLayers(); renderLayerList(); });
+document.getElementById('btn-none').addEventListener('click', () => { layers.forEach(l => l.checked = false); syncAllLayers(); renderLayerList(); });
+document.getElementById('btn-extent').addEventListener('click', () => { if(fullExtent) map.fitBounds(fullExtent); });
+filterInput.addEventListener('input', renderLayerList);
+map.on('zoomend', () => { syncAllLayers(); renderLayerList(); });
+map.on('moveend', refreshStatus);
+document.getElementById('browse-toggle').addEventListener('click', () => document.getElementById('browse-panel').classList.toggle('collapsed'));
+
+fetch(SERVICE_URL + '?f=json').then(r => r.json()).then(meta => {
+  if(meta.fullExtent){
+    try{
+      const sw = L.CRS.EPSG3857.unproject(L.point(meta.fullExtent.xmin, meta.fullExtent.ymin));
+      const ne = L.CRS.EPSG3857.unproject(L.point(meta.fullExtent.xmax, meta.fullExtent.ymax));
+      fullExtent = L.latLngBounds(sw, ne);
+    } catch(e){}
+  }
+  renderLayerList(); syncAllLayers();
+}).catch(() => { renderLayerList(); syncAllLayers(); });
+
+/* ===================== AOI: DRAG & DROP KML/KMZ ===================== */
+const dropOverlay = document.getElementById('drop-overlay');
+const aoiBody = document.getElementById('aoi-body');
+let aoiLayer = null;
+let aoiGeojson = null;
+let aoiResultsGroup = L.layerGroup().addTo(map);
+let aoiResults = []; // {layerDef, geojson, checked, mapLayer}
+let dragDepth = 0;
+
+['dragenter','dragover'].forEach(evt => document.addEventListener(evt, e => {
+  if(!e.dataTransfer || !Array.from(e.dataTransfer.types||[]).includes('Files')) return;
+  e.preventDefault();
+  dragDepth++;
+  dropOverlay.classList.add('active');
+}));
+['dragleave'].forEach(evt => document.addEventListener(evt, e => {
+  dragDepth = Math.max(0, dragDepth-1);
+  if(dragDepth === 0) dropOverlay.classList.remove('active');
+}));
+document.addEventListener('drop', async e => {
+  e.preventDefault();
+  dragDepth = 0;
+  dropOverlay.classList.remove('active');
+  const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if(!file) return;
+  try { await handleDroppedFile(file); }
+  catch(err){ console.error(err); alert('Could not read that file: ' + err.message); setBusy(false); }
+});
+
+async function handleDroppedFile(file){
+  const ext = file.name.split('.').pop().toLowerCase();
+  let kmlText;
+  setBusy(true, 'Reading ' + file.name + '…');
+  if(ext === 'kmz'){
+    const zip = await JSZip.loadAsync(file);
+    const entryName = Object.keys(zip.files).find(n => n.toLowerCase().endsWith('.kml'));
+    if(!entryName) throw new Error('No .kml found inside this KMZ');
+    kmlText = await zip.files[entryName].async('text');
+  } else if(ext === 'kml'){
+    kmlText = await file.text();
+  } else {
+    setBusy(false);
+    alert('Please drop a .kml or .kmz file.');
+    return;
+  }
+  const dom = new DOMParser().parseFromString(kmlText, 'text/xml');
+  const gj = window.toGeoJSON.kml(dom);
+  if(!gj.features || !gj.features.length) throw new Error('No geometry found in this file');
+  await loadAOI(gj, file.name);
+}
+
+function clearAOI(){
+  if(aoiLayer){ map.removeLayer(aoiLayer); aoiLayer = null; }
+  aoiResultsGroup.clearLayers();
+  aoiResults = [];
+  aoiGeojson = null;
+  aoiBody.classList.add('placeholder');
+  aoiBody.innerHTML = `<div class="dz-hint">Drag &amp; drop a <b>.kml</b> or <b>.kmz</b> file anywhere on the map to define your area of interest. All intersecting SG layers will be found automatically.</div>`;
+}
+
+async function loadAOI(geojson, filename){
+  clearAOI();
+  aoiGeojson = geojson;
+  aoiLayer = L.geoJSON(geojson, {
+    style: { color:'#d69a3f', weight:2.5, dashArray:'7,5', fillColor:'#d69a3f', fillOpacity:0.06 },
+    pointToLayer: (f, latlng) => L.circleMarker(latlng, { radius:6, color:'#d69a3f', weight:2, fillOpacity:0.4 })
+  }).addTo(map);
+  const bounds = aoiLayer.getBounds();
+  if(bounds.isValid()) map.fitBounds(bounds, { padding:[60,60] });
+
+  aoiBody.classList.remove('placeholder');
+  aoiBody.innerHTML = `<div class="aoi-meta">Loaded <b>${escapeHtml(filename)}</b> · searching CSG layers for overlap…</div>`;
+
+  setBusy(true, 'Querying 29 SG layers for overlap…');
+  const esriGeom = buildEsriGeometry(geojson);
+
+  const settled = await Promise.allSettled(LAYER_DEFS.map(def =>
+    queryAOIForLayer(def, esriGeom).then(fc => ({ def, fc }))
+  ));
+
+  aoiResults = [];
+  settled.forEach(s => {
+    if(s.status === 'fulfilled' && s.value.fc.features && s.value.fc.features.length){
+      aoiResults.push({ layerDef: s.value.def, geojson: s.value.fc, checked: true });
+    }
+  });
+  aoiResults.sort((a,b) => b.geojson.features.length - a.geojson.features.length);
+
+  aoiResultsGroup.clearLayers();
+  aoiResults.forEach(r => { r.mapLayer = buildAoiMapLayer(r.layerDef, r.geojson); r.mapLayer.addTo(aoiResultsGroup); });
+
+  renderAoiPanel(filename);
+  setBusy(false);
+}
+
+function buildEsriGeometry(geojson){
+  const rings = [];
+  geojson.features.forEach(f => {
+    if(!f.geometry) return;
+    const g = f.geometry;
+    if(g.type === 'Polygon') g.coordinates.forEach(r => rings.push(reverseRing(r)));
+    else if(g.type === 'MultiPolygon') g.coordinates.forEach(poly => poly.forEach(r => rings.push(reverseRing(r))));
+  });
+  if(rings.length) return { rings, spatialReference: { wkid: 4326 } };
+
+  // Fallback: no polygons in the file (points/lines only) — use bounding box envelope
+  let xmin=Infinity, ymin=Infinity, xmax=-Infinity, ymax=-Infinity;
+  const walk = (coords) => {
+    if(typeof coords[0] === 'number'){ const [x,y]=coords; if(x<xmin)xmin=x; if(x>xmax)xmax=x; if(y<ymin)ymin=y; if(y>ymax)ymax=y; }
+    else coords.forEach(walk);
+  };
+  geojson.features.forEach(f => f.geometry && walk(f.geometry.coordinates));
+  const ring = normalizeWinding([[xmin,ymin],[xmin,ymax],[xmax,ymax],[xmax,ymin],[xmin,ymin]], true);
+  return { rings:[ring], spatialReference:{ wkid:4326 } };
+}
+function ringArea(ring){ let a=0; for(let i=0;i<ring.length-1;i++){ a += ring[i][0]*ring[i+1][1] - ring[i+1][0]*ring[i][1]; } return a/2; }
+function reverseRing(ring){ return ring.slice().reverse(); } // GeoJSON->Esri: flip every ring's winding
+function normalizeWinding(ring, wantCW){
+  const isCW = ringArea(ring) < 0;
+  return (wantCW === isCW) ? ring : ring.slice().reverse();
+}
+
+async function queryAOIForLayer(layerDef, esriGeometry){
+  let all = [];
+  let offset = 0;
+  const pageSize = 1000;
+  for(let page=0; page<20; page++){
+    const params = new URLSearchParams({
+      f:'geojson', where:'1=1', outFields:'*', returnGeometry:'true',
+      spatialRel:'esriSpatialRelIntersects', geometryType:'esriGeometryPolygon',
+      geometry: JSON.stringify(esriGeometry), inSR:'4326', outSR:'4326',
+      resultOffset:String(offset), resultRecordCount:String(pageSize)
+    });
+    const res = await fetch(`${SERVICE_URL}/${layerDef.id}/query?${params.toString()}`);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const gj = await res.json();
+    if(gj.error) throw new Error(gj.error.message || 'query error');
+    const feats = gj.features || [];
+    all = all.concat(feats);
+    if(feats.length < pageSize) break;
+    offset += pageSize;
+  }
+  return { type:'FeatureCollection', features: all };
+}
+
+function buildAoiMapLayer(layerDef, fc){
+  const opts = { onEachFeature: (feature, layer) => layer.bindPopup(() => popupHtmlFor(feature.properties, layerDef.name), { maxHeight:280 }) };
+  if(layerDef.type === 'point'){
+    opts.pointToLayer = (g, latlng) => L.circleMarker(latlng, { radius:5, color:layerDef.color, weight:1.5, fillColor:layerDef.color, fillOpacity:0.9 });
+  } else if(layerDef.type === 'polyline'){
+    opts.style = () => ({ color:layerDef.color, weight:3, opacity:0.95 });
+  } else {
+    opts.style = () => ({ color:layerDef.color, weight:1.5, fillColor:layerDef.color, fillOpacity:0.28, opacity:0.95 });
+  }
+  return L.geoJSON(fc, opts);
+}
+
+function getCheckedAoiResults(){ return aoiResults.filter(r => r.checked); }
+
+function renderAoiPanel(filename){
+  const totalFeatures = aoiResults.reduce((s,r) => s + r.geojson.features.length, 0);
+  let areaLine = '';
+  try{
+    const km2 = turf.area(aoiGeojson) / 1e6;
+    areaLine = `<div class="aoi-meta">Area ≈ <b>${km2 < 1 ? (km2*100).toFixed(1) + ' ha' : km2.toFixed(2) + ' km²'}</b></div>`;
+  } catch(e){}
+
+  if(!aoiResults.length){
+    aoiBody.innerHTML = `
+      <div class="aoi-meta"><b>${escapeHtml(filename)}</b> — no intersecting SG data found. <button id="aoi-clear">Clear</button></div>
+      ${areaLine}`;
+    document.getElementById('aoi-clear').addEventListener('click', clearAOI);
+    return;
+  }
+
+  const rows = aoiResults.map(r => `
+    <div class="aoi-layer-row">
+      <input type="checkbox" id="aoi-chk-${r.layerDef.id}" ${r.checked ? 'checked':''}/>
+      <span class="swatch" style="background:${r.layerDef.color}"></span>
+      <label for="aoi-chk-${r.layerDef.id}">${escapeHtml(r.layerDef.name)}</label>
+      <span class="cnt">${r.geojson.features.length}</span>
+    </div>`).join('');
+
+  aoiBody.innerHTML = `
+    <div class="aoi-meta"><b>${escapeHtml(filename)}</b> — ${aoiResults.length} layer(s), ${totalFeatures} feature(s) intersect. <button id="aoi-clear">Clear</button></div>
+    ${areaLine}
+    <div id="aoi-layer-rows">${rows}</div>
+    <div id="download-wrap">
+      <button id="btn-download">&#8681; Download Cadastral Data</button>
+      <div id="download-menu">
+        <button data-fmt="kml">KML <small>.kml</small></button>
+        <button data-fmt="kmz">KMZ <small>.kmz (zipped)</small></button>
+        <button data-fmt="shp">Shapefile <small>.zip of .shp/.dbf</small></button>
+        <button data-fmt="gpkg">GeoPackage <small>.gpkg</small></button>
+      </div>
+    </div>`;
+
+  document.getElementById('aoi-clear').addEventListener('click', clearAOI);
+  aoiResults.forEach(r => {
+    document.getElementById(`aoi-chk-${r.layerDef.id}`).addEventListener('change', e => {
+      r.checked = e.target.checked;
+      if(r.checked) r.mapLayer.addTo(aoiResultsGroup); else aoiResultsGroup.removeLayer(r.mapLayer);
+    });
+  });
+
+  const btnDl = document.getElementById('btn-download');
+  const menu = document.getElementById('download-menu');
+  btnDl.addEventListener('click', (e) => { e.stopPropagation(); menu.classList.toggle('open'); });
+  document.addEventListener('click', () => menu.classList.remove('open'));
+  menu.querySelectorAll('button').forEach(b => b.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    menu.classList.remove('open');
+    const fmt = b.getAttribute('data-fmt');
+    try{
+      if(fmt === 'kml') exportKML(false);
+      else if(fmt === 'kmz') await exportKML(true);
+      else if(fmt === 'shp') await exportShapefile();
+      else if(fmt === 'gpkg') await exportGeoPackage();
+    } catch(err){ console.error(err); alert('Export failed: ' + err.message); }
+    finally { setBusy(false); }
+  }));
+}
+
+/* ===================== EXPORT: KML / KMZ ===================== */
+function xmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function coordsToKML(coords){ return coords.map(c => c[0] + ',' + c[1]).join(' '); }
+function ringToLinearRing(ring){ return `<LinearRing><coordinates>${coordsToKML(ring)}</coordinates></LinearRing>`; }
+function polygonToKML(rings){
+  const outer = `<outerBoundaryIs>${ringToLinearRing(rings[0])}</outerBoundaryIs>`;
+  const inner = rings.slice(1).map(r => `<innerBoundaryIs>${ringToLinearRing(r)}</innerBoundaryIs>`).join('');
+  return `<Polygon>${outer}${inner}</Polygon>`;
+}
+function geometryToKML(geom){
+  if(!geom) return '';
+  switch(geom.type){
+    case 'Point': return `<Point><coordinates>${geom.coordinates[0]},${geom.coordinates[1]}</coordinates></Point>`;
+    case 'MultiPoint': return `<MultiGeometry>${geom.coordinates.map(c=>`<Point><coordinates>${c[0]},${c[1]}</coordinates></Point>`).join('')}</MultiGeometry>`;
+    case 'LineString': return `<LineString><coordinates>${coordsToKML(geom.coordinates)}</coordinates></LineString>`;
+    case 'MultiLineString': return `<MultiGeometry>${geom.coordinates.map(l=>`<LineString><coordinates>${coordsToKML(l)}</coordinates></LineString>`).join('')}</MultiGeometry>`;
+    case 'Polygon': return polygonToKML(geom.coordinates);
+    case 'MultiPolygon': return `<MultiGeometry>${geom.coordinates.map(polygonToKML).join('')}</MultiGeometry>`;
+    default: return '';
+  }
+}
+function propsToExtendedData(props){
+  const keys = Object.keys(props||{}).filter(k => props[k]!==null && props[k]!==undefined);
+  if(!keys.length) return '';
+  return `<ExtendedData>${keys.map(k=>`<Data name="${xmlEsc(k)}"><value>${xmlEsc(props[k])}</value></Data>`).join('')}</ExtendedData>`;
+}
+function featureToPlacemark(feature, layerName, idx){
+  const props = feature.properties || {};
+  const nameVal = props.NAME || props.Name || props.name || props.ERF_NO || props.PORTION_NO || `${layerName} ${idx+1}`;
+  return `<Placemark><name>${xmlEsc(nameVal)}</name>${propsToExtendedData(props)}${geometryToKML(feature.geometry)}</Placemark>`;
+}
+function buildKMLDocument(){
+  const aoiFolder = aoiGeojson ? `<Folder><name>Area of Interest</name><Style><LineStyle><color>ff3f9ad6</color><width>2</width></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>${aoiGeojson.features.map((f,i)=>featureToPlacemark(f,'AOI',i)).join('')}</Folder>` : '';
+  const layerFolders = getCheckedAoiResults().map(r =>
+    `<Folder><name>${xmlEsc(r.layerDef.name)}</name>${r.geojson.features.map((f,i)=>featureToPlacemark(f,r.layerDef.name,i)).join('')}</Folder>`
+  ).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>CSG Cadastral Export</name>${aoiFolder}${layerFolders}</Document></kml>`;
+}
+async function exportKML(asKmz){
+  if(!getCheckedAoiResults().length){ alert('No layers selected to export.'); return; }
+  setBusy(true, asKmz ? 'Building KMZ…' : 'Building KML…');
+  const kml = buildKMLDocument();
+  if(asKmz){
+    const zip = new JSZip();
+    zip.file('doc.kml', kml);
+    const blob = await zip.generateAsync({ type:'blob' });
+    downloadBlob(blob, 'csg_cadastral_export.kmz');
+  } else {
+    downloadBlob(new Blob([kml], { type:'application/vnd.google-earth.kml+xml' }), 'csg_cadastral_export.kml');
+  }
+}
+
+/* ===================== EXPORT: SHAPEFILE ===================== */
+function toEsriWindingRing(ring, wantCW){ return normalizeWinding(ensureClosedRing(ring), wantCW); }
+function ensureClosedRing(ring){
+  ring = ring.map(c => [c[0], c[1]]);
+  const f = ring[0], l = ring[ring.length-1];
+  if(f[0]!==l[0] || f[1]!==l[1]) ring.push([f[0], f[1]]);
+  return ring;
+}
+function geometryToParts(geometry){
+  const t = geometry.type;
+  if(t==='Point') return { kind:'point', points:[geometry.coordinates.slice(0,2)] };
+  if(t==='MultiPoint') return { kind:'point', points: geometry.coordinates.map(c=>c.slice(0,2)) };
+  if(t==='LineString') return { kind:'line', parts:[geometry.coordinates.map(c=>c.slice(0,2))] };
+  if(t==='MultiLineString') return { kind:'line', parts: geometry.coordinates.map(l=>l.map(c=>c.slice(0,2))) };
+  if(t==='Polygon') return { kind:'polygon', parts: geometry.coordinates.map((ring,idx)=>toEsriWindingRing(ring.map(c=>c.slice(0,2)), idx===0)) };
+  if(t==='MultiPolygon') return { kind:'polygon', parts: geometry.coordinates.flatMap(poly=>poly.map((ring,idx)=>toEsriWindingRing(ring.map(c=>c.slice(0,2)), idx===0))) };
+  return null;
+}
+function buildShpShx(records, shapeType){
+  const recordsMeta = records.map(r => {
+    if(shapeType===1) return { contentWords:10, x:r.points[0][0], y:r.points[0][1] };
+    const numParts = r.parts.length, numPoints = r.parts.reduce((s,p)=>s+p.length,0);
+    return { contentWords: (4+32+4+4+numParts*4+numPoints*16)/2, numParts, numPoints, parts:r.parts };
+  });
+  const totalUnits = recordsMeta.reduce((s,r)=>s+4+r.contentWords,0);
+  const fileWords = 50 + totalUnits;
+  const shpBuf = new ArrayBuffer(fileWords*2);
+  const dv = new DataView(shpBuf);
+
+  let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity;
+  records.forEach(r => { (shapeType===1? r.points : r.parts.flat()).forEach(([x,y])=>{ if(x<xmin)xmin=x; if(x>xmax)xmax=x; if(y<ymin)ymin=y; if(y>ymax)ymax=y; }); });
+
+  const writeHeader = (dview, fw) => {
+    dview.setInt32(0,9994,false); dview.setInt32(24,fw,false); dview.setInt32(28,1000,true); dview.setInt32(32,shapeType,true);
+    dview.setFloat64(36,xmin,true); dview.setFloat64(44,ymin,true); dview.setFloat64(52,xmax,true); dview.setFloat64(60,ymax,true);
+    dview.setFloat64(68,0,true); dview.setFloat64(76,0,true); dview.setFloat64(84,0,true); dview.setFloat64(92,0,true);
+  };
+  writeHeader(dv, fileWords);
+
+  const shxEntries = [];
+  let pos = 100;
+  recordsMeta.forEach((r,i) => {
+    const headerStart = pos;
+    dv.setInt32(pos, i+1, false); pos+=4;
+    dv.setInt32(pos, r.contentWords, false); pos+=4;
+    shxEntries.push({ offsetWords: headerStart/2, contentWords: r.contentWords });
+    if(shapeType===1){
+      dv.setInt32(pos,1,true); pos+=4;
+      dv.setFloat64(pos,r.x,true); pos+=8;
+      dv.setFloat64(pos,r.y,true); pos+=8;
+    } else {
+      dv.setInt32(pos,shapeType,true); pos+=4;
+      let bx0=Infinity,by0=Infinity,bx1=-Infinity,by1=-Infinity;
+      r.parts.forEach(part=>part.forEach(([x,y])=>{ if(x<bx0)bx0=x; if(x>bx1)bx1=x; if(y<by0)by0=y; if(y>by1)by1=y; }));
+      dv.setFloat64(pos,bx0,true); pos+=8; dv.setFloat64(pos,by0,true); pos+=8;
+      dv.setFloat64(pos,bx1,true); pos+=8; dv.setFloat64(pos,by1,true); pos+=8;
+      dv.setInt32(pos,r.numParts,true); pos+=4;
+      dv.setInt32(pos,r.numPoints,true); pos+=4;
+      let idx=0;
+      r.parts.forEach(part => { dv.setInt32(pos, idx, true); pos+=4; idx += part.length; });
+      r.parts.forEach(part => part.forEach(([x,y]) => { dv.setFloat64(pos,x,true); pos+=8; dv.setFloat64(pos,y,true); pos+=8; }));
+    }
+  });
+
+  const shxWords = 50 + shxEntries.length*4;
+  const shxBuf = new ArrayBuffer(shxWords*2);
+  const dv2 = new DataView(shxBuf);
+  writeHeader(dv2, shxWords);
+  let p2 = 100;
+  shxEntries.forEach(e => { dv2.setInt32(p2, e.offsetWords, false); p2+=4; dv2.setInt32(p2, e.contentWords, false); p2+=4; });
+
+  return { shp: shpBuf, shx: shxBuf };
+}
+function buildDbfFieldDefs(features){
+  const keys = new Set();
+  features.forEach(f => Object.keys(f.properties||{}).forEach(k=>keys.add(k)));
+  const used = new Set(); const defs = [];
+  keys.forEach(k => {
+    let name = k.toUpperCase().replace(/[^A-Z0-9_]/g,'_').slice(0,10) || 'FIELD';
+    let base = name, n = 1;
+    while(used.has(name)){ name = base.slice(0, 10-String(n).length) + n; n++; }
+    used.add(name);
+    let maxLen=1, isNumeric=true, maxDec=0;
+    features.forEach(f => {
+      const v = f.properties ? f.properties[k] : undefined;
+      if(v===null || v===undefined) return;
+      if(typeof v === 'number' && isFinite(v)){
+        const s = String(v); if(s.length>maxLen) maxLen=s.length;
+        const dec = (s.split('.')[1]||'').length; if(dec>maxDec) maxDec=dec;
+      } else { isNumeric=false; const s=String(v); if(s.length>maxLen) maxLen=s.length; }
+    });
+    maxLen = Math.min(Math.max(maxLen,1),254);
+    defs.push({ name, origKey:k, type: isNumeric?'N':'C', length:maxLen, decimals:isNumeric?Math.min(maxDec,6):0 });
+  });
+  return defs;
+}
+function buildDbf(features, fieldDefs){
+  const numRecords = features.length;
+  const headerSize = 32 + fieldDefs.length*32 + 1;
+  const recordSize = 1 + fieldDefs.reduce((s,f)=>s+f.length,0);
+  const totalSize = headerSize + recordSize*numRecords + 1;
+  const buf = new ArrayBuffer(totalSize);
+  const dv = new DataView(buf); const u8 = new Uint8Array(buf);
+  const now = new Date();
+  dv.setUint8(0,0x03); dv.setUint8(1,Math.max(0,now.getFullYear()-1900)); dv.setUint8(2,now.getMonth()+1); dv.setUint8(3,now.getDate());
+  dv.setUint32(4,numRecords,true); dv.setUint16(8,headerSize,true); dv.setUint16(10,recordSize,true);
+  let pos = 32;
+  fieldDefs.forEach(f => {
+    for(let i=0;i<11;i++) u8[pos+i] = i<f.name.length ? f.name.charCodeAt(i) : 0;
+    u8[pos+11] = f.type.charCodeAt(0);
+    u8[pos+16] = f.length; u8[pos+17] = f.decimals||0;
+    pos += 32;
+  });
+  u8[pos] = 0x0D; pos += 1;
+  features.forEach(feat => {
+    u8[pos] = 0x20; pos += 1;
+    fieldDefs.forEach(f => {
+      const raw = feat.properties ? feat.properties[f.origKey] : undefined;
+      let str = (raw===null || raw===undefined) ? '' : String(raw);
+      str = str.slice(0, f.length);
+      str = f.type==='N' ? str.padStart(f.length,' ') : str.padEnd(f.length,' ');
+      for(let i=0;i<f.length;i++) u8[pos+i] = str.charCodeAt(i) || 0x20;
+      pos += f.length;
+    });
+  });
+  u8[pos] = 0x1A;
+  return buf;
+}
+async function exportShapefile(){
+  const checked = getCheckedAoiResults();
+  if(!checked.length){ alert('No layers selected to export.'); return; }
+  setBusy(true, 'Building shapefiles…');
+  const zip = new JSZip();
+  let any = false;
+  checked.forEach(r => {
+    const shapeType = r.layerDef.type==='point' ? 1 : r.layerDef.type==='polyline' ? 3 : 5;
+    const records = []; const flatFeats = [];
+    r.geojson.features.forEach(f => {
+      if(!f.geometry) return;
+      const g = geometryToParts(f.geometry);
+      if(!g) return;
+      if(shapeType===1){ g.points.forEach(pt => { records.push({ points:[pt] }); flatFeats.push(f); }); }
+      else { records.push({ parts:g.parts }); flatFeats.push(f); }
+    });
+    if(!records.length) return;
+    any = true;
+    const { shp, shx } = buildShpShx(records, shapeType);
+    const fieldDefs = buildDbfFieldDefs(flatFeats);
+    const dbf = buildDbf(flatFeats, fieldDefs);
+    const base = sanitizeFilename(r.layerDef.name);
+    zip.file(`${base}.shp`, shp);
+    zip.file(`${base}.shx`, shx);
+    zip.file(`${base}.dbf`, dbf);
+    zip.file(`${base}.prj`, WGS84_WKT_ESRI);
+  });
+  if(!any){ setBusy(false); alert('No features to export.'); return; }
+  const blob = await zip.generateAsync({ type:'blob' });
+  downloadBlob(blob, 'csg_cadastral_export_shapefiles.zip');
+}
+
+/* ===================== EXPORT: GEOPACKAGE (via sql.js) ===================== */
+async function loadSqlJs(){
+  if(window.__SQL) return window.__SQL;
+  if(!window.initSqlJs){
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js';
+      s.onload = resolve; s.onerror = () => reject(new Error('Failed to load sql.js from CDN'));
+      document.head.appendChild(s);
+    });
+  }
+  window.__SQL = await window.initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
+  return window.__SQL;
+}
+class BufWriter{
+  constructor(){ this.parts=[]; }
+  u8(v){ this.parts.push(Uint8Array.of(v & 0xff)); }
+  bytes(u8arr){ this.parts.push(u8arr); }
+  u32(v){ const b=new Uint8Array(4); new DataView(b.buffer).setUint32(0,v,true); this.parts.push(b); }
+  f64(v){ const b=new Uint8Array(8); new DataView(b.buffer).setFloat64(0,v,true); this.parts.push(b); }
+  toU8(){ const total=this.parts.reduce((s,p)=>s+p.length,0); const out=new Uint8Array(total); let o=0; this.parts.forEach(p=>{out.set(p,o); o+=p.length;}); return out; }
+}
+function writePoint(w,c){ w.f64(c[0]); w.f64(c[1]); }
+function writeRingWKB(w,ring){ w.u32(ring.length); ring.forEach(c=>writePoint(w,c)); }
+function encodeGeom(w, geom){
+  w.u8(1);
+  switch(geom.type){
+    case 'Point': w.u32(1); writePoint(w, geom.coordinates); break;
+    case 'LineString': w.u32(2); w.u32(geom.coordinates.length); geom.coordinates.forEach(c=>writePoint(w,c)); break;
+    case 'Polygon': w.u32(3); w.u32(geom.coordinates.length); geom.coordinates.forEach(r=>writeRingWKB(w,r)); break;
+    case 'MultiPoint': w.u32(4); w.u32(geom.coordinates.length); geom.coordinates.forEach(c=>{ w.u8(1); w.u32(1); writePoint(w,c); }); break;
+    case 'MultiLineString': w.u32(5); w.u32(geom.coordinates.length); geom.coordinates.forEach(l=>{ w.u8(1); w.u32(2); w.u32(l.length); l.forEach(c=>writePoint(w,c)); }); break;
+    case 'MultiPolygon': w.u32(6); w.u32(geom.coordinates.length); geom.coordinates.forEach(poly=>{ w.u8(1); w.u32(3); w.u32(poly.length); poly.forEach(r=>writeRingWKB(w,r)); }); break;
+  }
+}
+function geometryToGPB(geometry, srsId){
+  const head = new BufWriter();
+  head.bytes(new TextEncoder().encode('GP'));
+  head.u8(0); head.u8(1); head.u32(srsId);
+  const body = new BufWriter(); encodeGeom(body, geometry);
+  const h = head.toU8(), b = body.toU8();
+  const out = new Uint8Array(h.length + b.length);
+  out.set(h,0); out.set(b,h.length);
+  return out;
+}
+function flattenCoords(geom){ const out=[]; const rec=c=>{ if(typeof c[0]==='number') out.push(c); else c.forEach(rec); }; rec(geom.coordinates); return out; }
+function geomBBox(geom){ const pts=flattenCoords(geom); if(!pts.length) return null; let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity; pts.forEach(([x,y])=>{ if(x<xmin)xmin=x; if(x>xmax)xmax=x; if(y<ymin)ymin=y; if(y>ymax)ymax=y; }); return [xmin,ymin,xmax,ymax]; }
+function sanitizeSqlIdent(name){ let s=String(name).replace(/[^A-Za-z0-9_]+/g,'_').replace(/^_+|_+$/g,''); if(!/^[A-Za-z]/.test(s)) s='L_'+s; return (s.slice(0,60)||'layer'); }
+function buildSqlFieldDefs(features){
+  const keys=new Set(); features.forEach(f=>Object.keys(f.properties||{}).forEach(k=>keys.add(k)));
+  const used=new Set(); const defs=[];
+  keys.forEach(k=>{
+    let name=sanitizeSqlIdent(k), base=name, n=1;
+    while(used.has(name)){ name=base+'_'+n; n++; }
+    used.add(name);
+    let allNumeric=true;
+    features.forEach(f=>{ const v=f.properties?f.properties[k]:undefined; if(v!==null && v!==undefined && !(typeof v==='number' && isFinite(v))) allNumeric=false; });
+    defs.push({ name, origKey:k, sqlType: allNumeric?'REAL':'TEXT' });
+  });
+  return defs;
+}
+async function exportGeoPackage(){
+  const checked = getCheckedAoiResults();
+  if(!checked.length){ alert('No layers selected to export.'); return; }
+  setBusy(true, 'Loading GeoPackage engine…');
+  let SQLmod;
+  try { SQLmod = await loadSqlJs(); }
+  catch(e){ setBusy(false); alert('GeoPackage export needs a small extra library that failed to load (check your internet connection). Try KML, KMZ or Shapefile instead.'); return; }
+
+  setBusy(true, 'Writing GeoPackage…');
+  try{
+    const db = new SQLmod.Database();
+    db.run(`CREATE TABLE gpkg_spatial_ref_sys (srs_name TEXT NOT NULL, srs_id INTEGER NOT NULL PRIMARY KEY, organization TEXT NOT NULL, organization_coordsys_id INTEGER NOT NULL, definition TEXT NOT NULL, description TEXT);`);
+    db.run(`INSERT INTO gpkg_spatial_ref_sys VALUES ('Undefined cartesian SRS',-1,'NONE',-1,'undefined',NULL);`);
+    db.run(`INSERT INTO gpkg_spatial_ref_sys VALUES ('Undefined geographic SRS',0,'NONE',0,'undefined',NULL);`);
+    db.run(`INSERT INTO gpkg_spatial_ref_sys VALUES ('WGS 84 geodetic',4326,'EPSG',4326,'${WGS84_WKT_ESRI.replace(/'/g,"''")}',NULL);`);
+    db.run(`CREATE TABLE gpkg_contents (table_name TEXT NOT NULL PRIMARY KEY, data_type TEXT NOT NULL, identifier TEXT UNIQUE, description TEXT DEFAULT '', last_change DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE, srs_id INTEGER);`);
+    db.run(`CREATE TABLE gpkg_geometry_columns (table_name TEXT NOT NULL, column_name TEXT NOT NULL, geometry_type_name TEXT NOT NULL, srs_id INTEGER NOT NULL, z TINYINT NOT NULL, m TINYINT NOT NULL, PRIMARY KEY (table_name, column_name));`);
+
+    checked.forEach(r => {
+      const table = sanitizeSqlIdent(r.layerDef.name);
+      const fieldDefs = buildSqlFieldDefs(r.geojson.features);
+      const colsSql = fieldDefs.map(f => `"${f.name}" ${f.sqlType}`).join(', ');
+      db.run(`CREATE TABLE "${table}" (fid INTEGER PRIMARY KEY AUTOINCREMENT, geom BLOB${colsSql ? ', '+colsSql : ''});`);
+
+      const insertCols = ['geom', ...fieldDefs.map(f=>`"${f.name}"`)].join(', ');
+      const placeholders = ['?', ...fieldDefs.map(()=> '?')].join(', ');
+      const stmt = db.prepare(`INSERT INTO "${table}" (${insertCols}) VALUES (${placeholders})`);
+
+      let minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity;
+      r.geojson.features.forEach(f => {
+        if(!f.geometry) return;
+        const gpb = geometryToGPB(f.geometry, 4326);
+        const bbox = geomBBox(f.geometry);
+        if(bbox){ minx=Math.min(minx,bbox[0]); miny=Math.min(miny,bbox[1]); maxx=Math.max(maxx,bbox[2]); maxy=Math.max(maxy,bbox[3]); }
+        const vals = [gpb, ...fieldDefs.map(fd => {
+          const v = f.properties ? f.properties[fd.origKey] : undefined;
+          if(v===undefined || v===null) return null;
+          return fd.sqlType==='TEXT' ? String(v) : Number(v);
+        })];
+        stmt.run(vals);
+      });
+      stmt.free();
+
+      db.run(`INSERT INTO gpkg_contents (table_name,data_type,identifier,description,min_x,min_y,max_x,max_y,srs_id) VALUES (?, 'features', ?, ?, ?, ?, ?, ?, 4326)`,
+        [table, r.layerDef.name, r.layerDef.name, isFinite(minx)?minx:null, isFinite(miny)?miny:null, isFinite(maxx)?maxx:null, isFinite(maxy)?maxy:null]);
+      db.run(`INSERT INTO gpkg_geometry_columns (table_name, column_name, geometry_type_name, srs_id, z, m) VALUES (?, 'geom', 'GEOMETRY', 4326, 0, 0)`, [table]);
+    });
+
+    const bytes = db.export();
+    downloadBlob(new Blob([bytes], { type:'application/geopackage+sqlite3' }), 'csg_cadastral_export.gpkg');
+    db.close();
+  } catch(e){
+    console.error(e);
+    alert('GeoPackage export failed: ' + e.message + '. Try Shapefile or KML instead.');
+  }
+}
+</script>
+</body>
+</html>
