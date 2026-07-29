@@ -13,55 +13,45 @@
 <script src="https://unpkg.com/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
 
 <style>
-  /* ---- 5D Geo inspired theme: navy + gold, light corporate ---- */
+  /* ================= 5D Geo theme — navy + gold, light & dark ================= */
   :root{
-    --navy:#0f2740;
-    --navy-2:#173a5c;
-    --navy-3:#1f4a73;
-    --gold:#d69a3f;
-    --gold-dark:#b87f2c;
-    --teal:#2f7f92;
-    --bg:#f3f5f7;
-    --panel:#ffffff;
-    --border:#e2e6ea;
-    --text:#1c2733;
-    --text-dim:#6b7686;
-    --warn:#c9822f;
-    --ok:#2f8f5b;
-    --err:#c0392b;
+    --navy:#0f2740; --navy-2:#173a5c; --navy-3:#1f4a73;
+    --gold:#d69a3f; --gold-dark:#b87f2c; --teal:#2f7f92;
+    --bg:#f3f5f7; --panel:#ffffff; --panel-2:#f8f9fb; --border:#e2e6ea;
+    --text:#1c2733; --text-dim:#6b7686;
+    --warn:#c9822f; --ok:#2f8f5b; --err:#c0392b;
+    --shadow-1:0 1px 3px rgba(15,39,64,.06);
+    --shadow-2:0 10px 28px rgba(15,39,64,.16);
+    --radius:8px;
+  }
+  :root[data-theme="dark"]{
+    --navy:#0a1826; --navy-2:#0f2740; --navy-3:#1f4a73;
+    --bg:#10161d; --panel:#171e26; --panel-2:#1c242d; --border:#2a333d;
+    --text:#e7ecf1; --text-dim:#8b98a6;
+    --shadow-1:0 1px 3px rgba(0,0,0,.35);
+    --shadow-2:0 10px 30px rgba(0,0,0,.55);
   }
   *{box-sizing:border-box;}
-  html,body{
-    margin:0; padding:0; height:100%;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg); color:var(--text);
-  }
-  #app{ display:flex; height:100vh; width:100vw; }
+  html,body{ margin:0; padding:0; height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); }
+  button,input{ font-family:inherit; }
+  #app{ display:flex; height:100vh; width:100vw; position:relative; overflow:hidden; }
 
   /* ---------- sidebar ---------- */
   #sidebar{
-    width:360px; min-width:360px;
-    background:var(--panel);
-    border-right:1px solid var(--border);
-    display:flex; flex-direction:column;
-    overflow:hidden;
-    box-shadow: 2px 0 10px rgba(15,39,64,.04);
+    width:368px; min-width:368px; background:var(--panel); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; overflow:hidden; box-shadow:2px 0 10px rgba(15,39,64,.05);
+    transition:transform .25s ease, background .2s ease, border-color .2s ease;
+    position:relative; z-index:500;
   }
-  #brand{
-    background:linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%);
-    padding:16px 18px; color:#fff;
-    display:flex; align-items:center; gap:10px;
-  }
-  #brand .mark{
-    width:34px; height:34px; border-radius:6px; flex:none;
-    background:var(--gold); color:var(--navy); font-weight:800; font-size:14px;
-    display:flex; align-items:center; justify-content:center; letter-spacing:.5px;
-  }
-  #brand .word{ line-height:1.25; }
+  #brand{ background:linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%); padding:14px 16px; color:#fff; display:flex; align-items:center; gap:10px; flex:none; }
+  #brand .mark{ width:34px; height:34px; border-radius:7px; flex:none; background:var(--gold); color:var(--navy); font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; letter-spacing:.5px; }
+  #brand .word{ line-height:1.25; flex:1; }
   #brand .word b{ display:block; font-size:14px; letter-spacing:.4px; }
   #brand .word span{ display:block; font-size:10px; color:#cfe0ee; letter-spacing:.6px; text-transform:uppercase; }
+  #theme-toggle{ flex:none; width:30px; height:30px; border-radius:7px; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; }
+  #theme-toggle:hover{ background:rgba(255,255,255,.18); }
 
-  #tagline{ padding:10px 18px; font-size:11.5px; color:var(--text-dim); line-height:1.5; border-bottom:1px solid var(--border); }
+  #tagline{ padding:9px 16px; font-size:11.5px; color:var(--text-dim); line-height:1.5; border-bottom:1px solid var(--border); flex:none; }
 
   #scroll-area{ flex:1; overflow-y:auto; }
   #scroll-area::-webkit-scrollbar{ width:7px; }
@@ -69,179 +59,221 @@
 
   /* AOI panel */
   #aoi-panel{ border-bottom:1px solid var(--border); }
-  #aoi-panel .sec-head{
-    padding:12px 18px; display:flex; align-items:center; gap:8px;
-    background:#fbf6ec; border-bottom:1px solid #f0e2c6;
-  }
+  #aoi-panel .sec-head{ padding:11px 16px; display:flex; align-items:center; gap:8px; background:var(--panel-2); border-bottom:1px solid var(--border); }
   #aoi-panel .sec-head .ico{ color:var(--gold-dark); font-size:14px; }
-  #aoi-panel .sec-head h2{ margin:0; font-size:12.5px; letter-spacing:.3px; color:var(--navy); text-transform:uppercase; }
-  #aoi-body{ padding:12px 18px; font-size:12px; color:var(--text-dim); line-height:1.6; }
-  #aoi-body.placeholder{ font-style:normal; }
-  #aoi-body .dz-hint{
-    border:1.5px dashed #cfd6dd; border-radius:8px; padding:14px; text-align:center;
-    color:var(--text-dim); font-size:11.5px; line-height:1.6;
-  }
+  #aoi-panel .sec-head h2{ margin:0; font-size:12px; letter-spacing:.4px; color:var(--navy); text-transform:uppercase; flex:1; }
+  #aoi-panel .sec-head .icon-btn.active{ background:var(--gold); color:#2a1d08; border-color:var(--gold-dark); }
+  :root[data-theme="dark"] #aoi-panel .sec-head h2{ color:#dce8f2; }
+  #aoi-body{ padding:12px 16px; font-size:12px; color:var(--text-dim); line-height:1.6; }
+  #aoi-body .dz-hint{ border:1.5px dashed var(--border); border-radius:8px; padding:14px; text-align:center; color:var(--text-dim); font-size:11.5px; line-height:1.6; }
   #aoi-body .dz-hint b{ color:var(--navy); }
+  :root[data-theme="dark"] #aoi-body .dz-hint b{ color:#dce8f2; }
   .aoi-meta{ font-size:11.5px; color:var(--text-dim); margin-bottom:8px; }
-  .aoi-meta b{ color:var(--navy); }
-  #aoi-clear{
-    font-size:11px; color:var(--err); background:none; border:none; cursor:pointer;
-    padding:0; text-decoration:underline; margin-left:6px;
-  }
-  .aoi-layer-row{
-    display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px;
-  }
-  .aoi-layer-row .swatch{ width:9px; height:9px; border-radius:2px; flex:none; border:1px solid rgba(0,0,0,.15); }
+  .aoi-meta b{ color:var(--text); }
+  #aoi-clear{ font-size:11px; color:var(--err); background:none; border:none; cursor:pointer; padding:0; text-decoration:underline; margin-left:6px; }
+  .aoi-layer-row{ display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px; }
+  .aoi-layer-row .swatch{ width:10px; height:10px; border-radius:2px; flex:none; border:1.5px solid rgba(0,0,0,.2); }
   .aoi-layer-row label{ flex:1; cursor:pointer; color:var(--text); }
   .aoi-layer-row .cnt{ color:var(--text-dim); font-size:10.5px; font-variant-numeric:tabular-nums; }
   .aoi-layer-row input{ accent-color:var(--gold-dark); cursor:pointer; }
 
   #download-wrap{ position:relative; margin-top:10px; }
-  #btn-download{
-    width:100%; padding:10px 12px; border-radius:7px; border:none;
-    background:var(--gold); color:#2a1d08; font-weight:700; font-size:12.5px;
-    cursor:pointer; letter-spacing:.2px;
-    display:flex; align-items:center; justify-content:center; gap:6px;
-  }
+  #btn-download{ width:100%; padding:10px 12px; border-radius:7px; border:none; background:var(--gold); color:#2a1d08; font-weight:700; font-size:12.5px; cursor:pointer; letter-spacing:.2px; display:flex; align-items:center; justify-content:center; gap:6px; }
   #btn-download:hover{ background:var(--gold-dark); color:#fff; }
   #btn-download:disabled{ background:#e5e2da; color:#9a9a9a; cursor:not-allowed; }
-  #download-menu{
-    display:none; position:absolute; left:0; right:0; top:calc(100% + 6px);
-    background:#fff; border:1px solid var(--border); border-radius:8px;
-    box-shadow:0 8px 24px rgba(15,39,64,.15); overflow:hidden; z-index:1000;
-  }
+  #download-menu{ display:none; position:absolute; left:0; right:0; top:calc(100% + 6px); background:var(--panel); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow-2); overflow:hidden; z-index:1000; }
   #download-menu.open{ display:block; }
-  #download-menu button{
-    width:100%; text-align:left; padding:10px 14px; border:none; background:#fff;
-    font-size:12px; color:var(--navy); cursor:pointer; border-bottom:1px solid var(--border);
-    display:flex; justify-content:space-between; gap:8px;
-  }
+  #download-menu button{ width:100%; text-align:left; padding:10px 14px; border:none; background:var(--panel); font-size:12px; color:var(--text); cursor:pointer; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; }
   #download-menu button:last-child{ border-bottom:none; }
-  #download-menu button:hover{ background:#f5f8fa; }
+  #download-menu button:hover{ background:var(--panel-2); }
   #download-menu button small{ color:var(--text-dim); font-weight:400; }
+  #dl-scope-note{ font-size:10.5px; color:var(--text-dim); margin-top:6px; line-height:1.5; }
 
   /* Browse layers panel */
-  #browse-panel .sec-head{
-    padding:12px 18px; display:flex; align-items:center; gap:8px; cursor:pointer;
-    border-bottom:1px solid var(--border); user-select:none;
-  }
-  #browse-panel .sec-head h2{ margin:0; font-size:12.5px; letter-spacing:.3px; color:var(--navy); text-transform:uppercase; flex:1; }
-  #browse-panel .sec-head .chev{ color:var(--text-dim); font-size:11px; transition:transform .15s; }
-  #browse-panel.collapsed .chev{ transform:rotate(-90deg); }
-  #browse-panel.collapsed #browse-body{ display:none; }
+  #browse-panel .sec-head{ padding:11px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); }
+  #browse-panel .sec-head h2{ margin:0; font-size:12px; letter-spacing:.4px; color:var(--navy); text-transform:uppercase; flex:1; }
+  :root[data-theme="dark"] #browse-panel .sec-head h2{ color:#dce8f2; }
 
-  #search-box{ padding:10px 18px; border-bottom:1px solid var(--border); }
-  #search-box input{
-    width:100%; padding:8px 10px; border-radius:6px;
-    border:1px solid var(--border); background:#fafbfc;
-    color:var(--text); font-size:12.5px; outline:none;
-  }
-  #search-box input:focus{border-color:var(--navy-3);}
+  #search-box{ padding:9px 16px; border-bottom:1px solid var(--border); display:flex; gap:6px; }
+  #search-box input{ flex:1; width:100%; padding:7px 10px; border-radius:6px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); font-size:12.5px; outline:none; }
+  #search-box input:focus{ border-color:var(--navy-3); box-shadow:0 0 0 3px var(--border); }
+  .icon-btn{ flex:none; width:30px; height:30px; border-radius:6px; border:1px solid var(--border); background:var(--panel-2); color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .icon-btn:hover{ border-color:var(--navy-3); color:var(--navy-3); }
 
-  #layer-list{ padding:4px 0; }
-  .layer-item{
-    display:flex; align-items:center; gap:9px;
-    padding:6px 18px; font-size:12px; cursor:pointer;
-    border-left:2px solid transparent;
-  }
-  .layer-item:hover{ background:#f6f8fa; }
-  .layer-item.active{ border-left-color:var(--navy-3); }
-  .layer-item.below-scale{ opacity:.5; }
-  .layer-item input{ accent-color:var(--navy-3); cursor:pointer; flex:none; }
-  .swatch{ width:9px; height:9px; border-radius:2px; flex:none; border:1px solid rgba(0,0,0,.15); }
-  .layer-item label{ cursor:pointer; user-select:none; flex:1; color:var(--text); }
+  #layer-tree{ padding:6px 0 2px; }
+  .cat{ border-bottom:1px solid var(--border); }
+  .cat:last-child{ border-bottom:none; }
+  .cat-head{ display:flex; align-items:center; gap:8px; padding:9px 16px; cursor:pointer; user-select:none; }
+  .cat-head:hover{ background:var(--panel-2); }
+  .cat-head .chev{ color:var(--text-dim); font-size:10px; transition:transform .18s ease; flex:none; width:10px; }
+  .cat.expanded .cat-head .chev{ transform:rotate(90deg); }
+  .cat-head .cat-name{ flex:1; font-size:12px; font-weight:650; color:var(--text); letter-spacing:.2px; }
+  .cat-head .cat-badge{ font-size:10px; color:var(--text-dim); background:var(--panel-2); border:1px solid var(--border); border-radius:20px; padding:1px 7px; font-variant-numeric:tabular-nums; }
+  .cat-body-wrap{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .22s ease; }
+  .cat.expanded .cat-body-wrap{ grid-template-rows:1fr; }
+  .cat-body-inner{ overflow:hidden; }
+
+  .layer-row{ display:flex; align-items:center; gap:9px; padding:6px 16px 6px 30px; font-size:12px; cursor:pointer; border-left:3px solid transparent; position:relative; }
+  .layer-row:hover{ background:var(--panel-2); }
+  .layer-row.active{ border-left-color:var(--gold-dark); background:var(--panel-2); }
+  .layer-row.active label{ font-weight:700; color:var(--navy); }
+  :root[data-theme="dark"] .layer-row.active label{ color:#f0d9a8; }
+  .layer-row.below-scale{ opacity:.55; }
+  .layer-row input[type=checkbox]{ accent-color:var(--navy-3); cursor:pointer; flex:none; }
+  .swatch{ width:10px; height:10px; border-radius:2px; flex:none; border:1.5px solid rgba(0,0,0,.2); }
+  .layer-row label{ cursor:pointer; user-select:none; flex:1; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .hint{ font-size:9px; color:var(--warn); white-space:nowrap; flex:none; }
-  .layer-item .id{ color:var(--text-dim); font-size:9.5px; margin-left:2px; flex:none; }
+  .layer-row .count{ color:var(--text-dim); font-size:10px; flex:none; font-variant-numeric:tabular-nums; background:var(--panel-2); border-radius:10px; padding:1px 6px; min-width:16px; text-align:center; }
 
-  #footer{ padding:10px 18px; border-top:1px solid var(--border); display:flex; gap:8px; }
-  #footer button{
-    flex:1; padding:7px 8px; font-size:11px; border-radius:6px;
-    border:1px solid var(--border); background:#fafbfc;
-    color:var(--navy); cursor:pointer;
-  }
+  .layer-detail{ padding:8px 16px 12px 30px; background:var(--panel-2); border-left:3px solid var(--gold-dark); }
+  .layer-detail .row{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .layer-detail label{ font-size:10.5px; color:var(--text-dim); width:52px; flex:none; }
+  .layer-detail input[type=range]{ flex:1; accent-color:var(--gold-dark); }
+  .layer-detail .opv{ font-size:10.5px; color:var(--text-dim); width:30px; text-align:right; flex:none; font-variant-numeric:tabular-nums; }
+  .layer-detail .actions{ display:flex; gap:6px; margin-top:4px; }
+  .layer-detail .actions button{ font-size:10.5px; padding:5px 8px; border-radius:5px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; }
+  .layer-detail .actions button:hover{ border-color:var(--navy-3); color:var(--navy-3); }
+
+  #footer{ padding:9px 16px; border-top:1px solid var(--border); display:flex; gap:8px; flex:none; }
+  #footer button{ flex:1; padding:7px 8px; font-size:11px; border-radius:6px; border:1px solid var(--border); background:var(--panel-2); color:var(--navy); cursor:pointer; }
+  :root[data-theme="dark"] #footer button{ color:#dce8f2; }
   #footer button:hover{ border-color:var(--navy-3); }
 
-  #status{
-    padding:8px 18px; font-size:11px; color:var(--teal);
-    border-top:1px solid var(--border);
-    display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:#fbfcfd;
+  #status{ padding:7px 16px; font-size:10.5px; color:var(--teal); border-top:1px solid var(--border); display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:var(--panel-2); flex:none; position:relative; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--teal); flex:none; }
+  .dot.loading{ background:var(--gold); animation:pulse 1s infinite; }
+  .dot.err{ background:var(--err); }
+  #coordval{ margin-left:auto; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  #zoomval{ color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  #shortcuts-btn{ flex:none; width:16px; height:16px; border-radius:50%; border:1px solid var(--border); background:var(--panel); color:var(--text-dim); font-size:9.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  #shortcuts-pop{ display:none; position:absolute; bottom:calc(100% + 8px); right:8px; background:var(--panel); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow-2); padding:12px 14px; font-size:11px; color:var(--text); width:220px; z-index:1400; }
+  #shortcuts-pop.open{ display:block; }
+  #shortcuts-pop h3{ margin:0 0 8px; font-size:11.5px; color:var(--navy); }
+  :root[data-theme="dark"] #shortcuts-pop h3{ color:#dce8f2; }
+  #shortcuts-pop .sk-row{ display:flex; justify-content:space-between; padding:3px 0; color:var(--text-dim); }
+  #shortcuts-pop kbd{ background:var(--panel-2); border:1px solid var(--border); border-radius:4px; padding:1px 6px; font-size:10.5px; color:var(--text); }
+
+  /* sidebar toggle (responsive) */
+  #sidebar-toggle{ display:none; position:absolute; top:12px; left:12px; z-index:800; width:38px; height:38px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--navy); box-shadow:var(--shadow-1); cursor:pointer; align-items:center; justify-content:center; font-size:16px; }
+  #sidebar-scrim{ display:none; }
+
+  @media (max-width: 880px){
+    #sidebar{ position:fixed; left:0; top:0; bottom:0; transform:translateX(-100%); box-shadow:var(--shadow-2); width:88vw; min-width:0; max-width:380px; }
+    #sidebar.open{ transform:translateX(0); }
+    #sidebar-toggle{ display:flex; }
+    #sidebar-scrim{ display:none; position:absolute; inset:0; background:rgba(10,20,30,.4); z-index:490; }
+    #sidebar-scrim.show{ display:block; }
+    #map-legend{ display:none; }
   }
-  .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);flex:none;}
-  .dot.loading{background:var(--gold); animation:pulse 1s infinite;}
-  .dot.err{background:var(--err);}
-  #zoomval{ margin-left:auto; color:var(--text-dim); font-variant-numeric:tabular-nums; }
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
   /* ---------- map + overlays ---------- */
   #map-wrap{ position:relative; flex:1; height:100%; }
   #map{ width:100%; height:100%; background:#dfe6ec; }
+  /* Leaflet's own stylesheet sets "pointer-events:auto" directly on every
+     .leaflet-interactive path (that's how popups/clicks work at all), which
+     overrides any pointer-events:none set further up on a pane or the map
+     container. To truly disable feature clicks while a drawing tool is
+     active, we must out-rank that rule with !important on the paths
+     themselves — toggled via this one class on #app. */
+  #app.tools-active .leaflet-interactive{ pointer-events: none !important; cursor: crosshair !important; }
 
-  #drop-overlay{
-    position:absolute; inset:0; z-index:900;
-    background:rgba(15,39,64,.72);
-    display:none; align-items:center; justify-content:center;
-    pointer-events:none;
-  }
+  #drop-overlay{ position:absolute; inset:0; z-index:900; background:rgba(15,39,64,.72); display:none; align-items:center; justify-content:center; pointer-events:none; }
   #drop-overlay.active{ display:flex; }
-  #drop-overlay .card{
-    border:2.5px dashed var(--gold); border-radius:14px; padding:36px 48px;
-    color:#fff; text-align:center; background:rgba(255,255,255,.06);
-  }
+  #drop-overlay .card{ border:2.5px dashed var(--gold); border-radius:14px; padding:36px 48px; color:#fff; text-align:center; background:rgba(255,255,255,.06); }
   #drop-overlay .card b{ display:block; font-size:16px; margin-bottom:6px; color:var(--gold); }
   #drop-overlay .card span{ font-size:12.5px; color:#dbe6ee; }
 
-  #busy-toast{
-    position:absolute; top:16px; left:50%; transform:translateX(-50%);
-    background:var(--navy); color:#fff; padding:9px 16px; border-radius:8px;
-    font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); z-index:950;
-    display:none; align-items:center; gap:8px;
-  }
+  #busy-toast{ position:absolute; top:16px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:9px 16px; border-radius:8px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); z-index:950; display:none; align-items:center; gap:8px; }
   #busy-toast.show{ display:flex; }
-  #busy-toast .spin{
-    width:12px; height:12px; border-radius:50%;
-    border:2px solid rgba(255,255,255,.35); border-top-color:#fff;
-    animation:spin .8s linear infinite;
-  }
+  #busy-toast .spin{ width:12px; height:12px; border-radius:50%; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; animation:spin .8s linear infinite; }
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
-  .leaflet-popup-content-wrapper{ background:#fff; color:var(--text); border-radius:8px; border:1px solid var(--border); }
-  .leaflet-popup-tip{ background:#fff; }
+  #hint-toast{ position:absolute; top:16px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:8px 10px 8px 16px; border-radius:8px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); z-index:960; display:none; align-items:center; gap:10px; }
+  #hint-toast.show{ display:flex; }
+  #hint-toast button{ font-size:11px; padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; cursor:pointer; }
+  #hint-toast button:hover{ background:rgba(255,255,255,.2); }
+
+  .feat-label{ position:relative; left:0; top:0; white-space:nowrap; font-weight:600; font-family:Arial, sans-serif; text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff, 0 0 3px #fff; pointer-events:none; }
+  :root[data-theme="dark"] .feat-label{ text-shadow:-1px -1px 0 #10161d,1px -1px 0 #10161d,-1px 1px 0 #10161d,1px 1px 0 #10161d, 0 0 3px #10161d; }
+
+  .leaflet-popup-content-wrapper{ background:var(--panel); color:var(--text); border-radius:8px; border:1px solid var(--border); }
+  .leaflet-popup-tip{ background:var(--panel); }
   .popup-title{ font-size:12.5px; font-weight:700; margin:0 0 6px; color:var(--navy); }
-  .popup-table{ border-collapse:collapse; font-size:11.5px; }
-  .popup-table td{ padding:2px 8px 2px 0; vertical-align:top; border-bottom:1px solid var(--border); }
+  :root[data-theme="dark"] .popup-title{ color:#f0d9a8; }
+  .popup-table{ border-collapse:collapse; font-size:11.5px; max-width:260px; }
+  .popup-table td{ padding:3px 8px 3px 0; vertical-align:top; border-bottom:1px solid var(--border); }
   .popup-table td.k{ color:var(--text-dim); white-space:nowrap; }
   .popup-empty{ font-size:11.5px; color:var(--text-dim); }
   .leaflet-control-attribution{ font-size:10px; }
+  .leaflet-control-layers{ border-radius:8px !important; box-shadow:var(--shadow-2) !important; }
+  .leaflet-bar a{ color:var(--navy) !important; }
+
+  /* legend control */
+  #map-legend{ background:var(--panel); border-radius:8px; box-shadow:var(--shadow-2); font-size:11.5px; color:var(--text); min-width:170px; overflow:hidden; border:1px solid var(--border); }
+  #map-legend .lg-head{ padding:8px 10px; display:flex; align-items:center; gap:6px; cursor:pointer; background:var(--panel-2); border-bottom:1px solid var(--border); }
+  #map-legend .lg-head b{ flex:1; font-size:11px; letter-spacing:.3px; color:var(--navy); }
+  :root[data-theme="dark"] #map-legend .lg-head b{ color:#dce8f2; }
+  #map-legend .lg-head .chev{ font-size:10px; color:var(--text-dim); transition:transform .15s; }
+  #map-legend.collapsed .lg-head .chev{ transform:rotate(-90deg); }
+  #map-legend.collapsed .lg-body{ display:none; }
+  #map-legend .lg-body{ padding:6px 10px 9px; }
+  #map-legend .lg-row{ display:flex; align-items:center; gap:7px; padding:3px 0; }
+  #map-legend .lg-row .sw{ width:16px; height:9px; border-radius:2px; flex:none; }
+  #map-legend .lg-row .ln{ width:16px; height:0; border-top:2px dashed; flex:none; }
+  #map-legend .lg-empty{ color:var(--text-dim); font-size:10.5px; padding:2px 0; }
+
+  /* context menu */
+  #ctx-menu{ position:fixed; display:none; background:var(--panel); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow-2); overflow:hidden; z-index:2000; min-width:170px; }
+  #ctx-menu.open{ display:block; }
+  #ctx-menu button{ display:block; width:100%; text-align:left; padding:8px 12px; border:none; background:var(--panel); font-size:11.5px; color:var(--text); cursor:pointer; }
+  #ctx-menu button:hover{ background:var(--panel-2); }
+
+  /* measurement control */
+  #measure-ctl{ background:var(--panel); border-radius:8px; box-shadow:var(--shadow-2); border:1px solid var(--border); overflow:hidden; }
+  #measure-ctl button{ display:block; width:100%; padding:8px 12px; border:none; background:var(--panel); font-size:11.5px; color:var(--text); cursor:pointer; text-align:left; white-space:nowrap; }
+  #measure-ctl button.active{ background:var(--gold); color:#2a1d08; font-weight:700; }
+  #measure-ctl button:hover:not(.active){ background:var(--panel-2); }
+  #measure-tooltip{ background:var(--navy); color:#fff; padding:3px 8px; border-radius:5px; font-size:11px; white-space:nowrap; box-shadow:var(--shadow-1); }
+  .leaflet-tooltip.measure-tip{ background:var(--navy); color:#fff; border:none; }
+  .leaflet-tooltip.measure-tip::before{ display:none; }
 </style>
 </head>
 <body>
 
 <div id="app">
+  <button id="sidebar-toggle" title="Toggle layer panel">&#9776;</button>
+  <div id="sidebar-scrim"></div>
+
   <div id="sidebar">
     <div id="brand">
       <div class="mark">5D</div>
       <div class="word"><b>5D Geo</b><span>CSG Cadastral Viewer</span></div>
+      <button id="theme-toggle" title="Toggle dark mode">&#9789;</button>
     </div>
-    <div id="tagline">Live cadastral data from the Chief Surveyor General (CSGSearch). Drop a KML/KMZ area of interest onto the map to pull every touching parcel, boundary and servitude.</div>
+    <div id="tagline">Live cadastral data from the Chief Surveyor General (CSGSearch). Drop a KML/KMZ, or draw an area directly on the map, to pull every touching parcel, boundary and servitude.</div>
 
     <div id="scroll-area">
       <div id="aoi-panel">
-        <div class="sec-head"><span class="ico">&#9733;</span><h2>Area of Interest</h2></div>
+        <div class="sec-head"><span class="ico">&#9733;</span><h2>Area of Interest</h2><button id="btn-draw-aoi" class="icon-btn" title="Draw an area of interest on the map">&#9998;</button></div>
         <div id="aoi-body" class="placeholder">
-          <div class="dz-hint">Drag &amp; drop a <b>.kml</b> or <b>.kmz</b> file anywhere on the map to define your area of interest. All intersecting SG layers will be found automatically.</div>
+          <div class="dz-hint">Drag &amp; drop a <b>.kml</b> or <b>.kmz</b> file anywhere on the map, or click the <b>&#9998;</b> pencil above to draw an area directly on the map. All intersecting SG layers will be found automatically.</div>
         </div>
       </div>
 
       <div id="browse-panel">
-        <div class="sec-head" id="browse-toggle"><h2>Browse SG Layers</h2><span class="chev">&#9662;</span></div>
-        <div id="browse-body">
-          <div id="search-box"><input id="filter" type="text" placeholder="Filter layers…" /></div>
-          <div id="layer-list"><div class="popup-empty" style="padding:10px 18px;">Loading layer list…</div></div>
-          <div id="footer">
-            <button id="btn-all">Show all</button>
-            <button id="btn-none">Hide all</button>
-            <button id="btn-extent">Zoom to extent</button>
-          </div>
+        <div class="sec-head"><h2>Operational Layers</h2></div>
+        <div id="search-box">
+          <input id="filter" type="text" placeholder="Filter layers… ( / )" />
+          <button class="icon-btn" id="btn-expand-all" title="Expand all categories">&#9660;</button>
+          <button class="icon-btn" id="btn-collapse-all" title="Collapse all categories">&#9650;</button>
+        </div>
+        <div id="layer-tree"></div>
+        <div id="footer">
+          <button id="btn-all">Show all</button>
+          <button id="btn-none">Hide all</button>
+          <button id="btn-extent">Zoom to extent</button>
         </div>
       </div>
     </div>
@@ -250,6 +282,16 @@
       <span class="dot loading" id="status-dot"></span>
       <span id="status-text">Connecting to service…</span>
       <span id="zoomval">z—</span>
+      <span id="coordval">—</span>
+      <button id="shortcuts-btn" title="Keyboard shortcuts">?</button>
+      <div id="shortcuts-pop">
+        <h3>Keyboard shortcuts</h3>
+        <div class="sk-row"><span>Focus layer search</span><kbd>/</kbd></div>
+        <div class="sk-row"><span>Toggle dark mode</span><kbd>D</kbd></div>
+        <div class="sk-row"><span>Toggle layer panel</span><kbd>L</kbd></div>
+        <div class="sk-row"><span>Cancel / deselect</span><kbd>Esc</kbd></div>
+        <div class="sk-row"><span>Show this panel</span><kbd>?</kbd></div>
+      </div>
     </div>
   </div>
 
@@ -257,62 +299,126 @@
     <div id="map"></div>
     <div id="drop-overlay"><div class="card"><b>Drop your KML / KMZ</b><span>Release to set it as the Area of Interest</span></div></div>
     <div id="busy-toast"><div class="spin"></div><span id="busy-text">Working…</span></div>
+    <div id="hint-toast"><span id="hint-text"></span><button id="hint-cancel">Cancel (Esc)</button></div>
   </div>
 </div>
+
+<div id="ctx-menu"></div>
 
 <script>
 const SERVICE_URL = "https://csggis.dlrrd.gov.za/server/rest/services/CSGSearch/MapServer";
 const WGS84_WKT_ESRI = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+const LS_PREFIX = 'csg5dgeo.';
 
-// Layer catalogue: id, name, geometry type, minZoom (scale-dependent threshold for browse mode), default checked
-const LAYER_DEFS = [
-  { id:14,  name:"Provinces",                     type:"polygon",  minZoom:0,  color:"#94a3b8" },
-  { id:15,  name:"District Municipalities",       type:"polygon",  minZoom:0,  color:"#7dd3fc" },
-  { id:40,  name:"Local Municipalities",          type:"polygon",  minZoom:6,  color:"#38bdf8" },
-  { id:5,   name:"Parent Farm",                   type:"polygon",  minZoom:9,  color:"#a56fd6" },
-  { id:505, name:"Farm Portion Registered - R",   type:"polygon",  minZoom:11, color:"#8b6fd6" },
-  { id:3,   name:"Farm Portion",                  type:"polygon",  minZoom:11, color:"#e08a3c" },
-  { id:1,   name:"Allotment Township",            type:"polygon",  minZoom:11, color:"#d6a83c" },
-  { id:4,   name:"Holding",                       type:"polygon",  minZoom:11, color:"#d65c8c" },
-  { id:22,  name:"Public Place",                  type:"polygon",  minZoom:13, color:"#2fa36c" },
-  { id:202, name:"Erven Registered - R",          type:"polygon",  minZoom:13, color:"#1f9c8f" },
-  { id:2,   name:"Erven",                         type:"polygon",  minZoom:13, color:"#1fb5a6" },
-  { id:600, name:"Landmass Boundary",             type:"polygon",  minZoom:0,  color:"#64748b" },
-  { id:704, name:"HYDR Coastal Lines",            type:"polyline", minZoom:0,  color:"#2f7f92" },
-  { id:25,  name:"Beacon",                        type:"point",    minZoom:15, color:"#c0392b" },
-  { id:702, name:"Trig Beacons",                  type:"point",    minZoom:12, color:"#d9534f" },
-  { id:7,   name:"General Plan",                  type:"polygon",  minZoom:11, color:"#c9a13a" },
-  { id:8,   name:"Lease Area",                    type:"polygon",  minZoom:9,  color:"#7ea33c" },
-  { id:10,  name:"Mineral Rights",                type:"polygon",  minZoom:7,  color:"#c9702f" },
-  { id:46,  name:"Established Boundary",          type:"polygon",  minZoom:9,  color:"#9aa0a6" },
-  { id:12,  name:"Servitude Line",                type:"polyline", minZoom:12, color:"#d6a83c" },
-  { id:13,  name:"Servitude Area",                type:"polygon",  minZoom:11, color:"#e0c34c" },
-  { id:47,  name:"Administrative Registration",   type:"polygon",  minZoom:7,  color:"#b6bcc4" },
-  { id:45,  name:"Other Boundaries",              type:"polygon",  minZoom:7,  color:"#9a9a9a" },
-  { id:43,  name:"Proclammation Area",            type:"polygon",  minZoom:7,  color:"#d67a7a" },
-  { id:9,   name:"Unalienated State Land",        type:"polygon",  minZoom:7,  color:"#5c92c9" },
-  { id:44,  name:"Unalienated River Bed",         type:"polygon",  minZoom:9,  color:"#2f7f92" },
-  { id:42,  name:"Street",                        type:"polyline", minZoom:13, color:"#8a94a3" },
-  { id:19,  name:"Africa",                        type:"polygon",  minZoom:0,  color:"#475569" },
-  { id:700, name:"Compilations",                  type:"polygon",  minZoom:9,  color:"#a58bd6" }
+function lsGet(key, fallback){ try{ const v = localStorage.getItem(LS_PREFIX+key); return v===null ? fallback : JSON.parse(v); }catch(e){ return fallback; } }
+function lsSet(key, val){ try{ localStorage.setItem(LS_PREFIX+key, JSON.stringify(val)); }catch(e){} }
+
+/* ============================= LAYER CATALOGUE =============================
+   Restricted to the 8 operational layers. Colours & scale thresholds mirror
+   the official Surveyor-General (CSGSearch) MapServer renderers as closely
+   as practical for a web client (fetched & verified against the live
+   service's drawingInfo at design time). All polygon fills are effectively
+   transparent; only outlines carry the SG symbology. */
+const CATEGORY_DEFS = [
+  { key:'parcels',    name:'Cadastral Parcels' },
+  { key:'farms',       name:'Farm Cadastre' },
+  { key:'servitudes',  name:'Servitudes' },
+  { key:'admin',       name:'Administrative Boundaries' }
 ];
-// Default-checked browse layers
-["Erven","Farm Portion","Parent Farm","Servitude Area","Holding"].forEach(n=>{
-  const d = LAYER_DEFS.find(l=>l.name===n); if(d) d.defaultChecked = true;
+
+const LAYER_DEFS = [
+  { key:'erven',        id:2,  name:'Erven',            cat:'parcels',    type:'polygon',  color:'#00b34d', weight:1.25, fillOpacity:0.05, minZoom:14, defaultChecked:true,  labelField:'TAG_VALUE' },
+  { key:'holdings',     id:4,  name:'Holdings',          cat:'parcels',    type:'polygon',  color:'#ff9900', weight:1.25, fillOpacity:0.05, minZoom:13, defaultChecked:true,  labelField:'TAG_VALUE' },
+  { key:'publicplaces', id:22, name:'Public Places',     cat:'parcels',    type:'polygon',  color:'#a900e6', weight:1.25, fillOpacity:0.05, minZoom:14, defaultChecked:false, labelField:'TAG_VALUE', labelBold:true },
+  { key:'farmportions', id:3,  name:'Farm Portions',     cat:'farms',      type:'polygon',  color:'#b5824a', weight:1.25, fillOpacity:0.05, minZoom:10, defaultChecked:true,  labelField:'TAG_VALUE' },
+  { key:'parentfarms',  id:5,  name:'Parent Farms',      cat:'farms',      type:'polygon',  color:'#b8ab00', weight:1.75, fillOpacity:0.05, minZoom:9,  defaultChecked:true,  labelField:'TAG_VALUE', labelBold:true },
+  { key:'servlines',    id:12, name:'Servitude Lines',   cat:'servitudes', type:'polyline', color:'#c98a1f', weight:1.5,  dash:'7,4',        minZoom:10, defaultChecked:false, labelField:'TAG_VALUE' },
+  { key:'servareas',    id:13, name:'Servitude Areas',   cat:'servitudes', type:'polygon',  color:'#c98a1f', weight:1.25, dash:'7,4', fillOpacity:0.04, minZoom:10, defaultChecked:false, labelField:'TAG_VALUE' },
+  { key:'provinces',    id:14, name:'Provinces',         cat:'admin',      type:'polygon',  color:'#e2231a', weight:2.25, fillOpacity:0,    minZoom:0,  alwaysVisible:true, defaultChecked:true, labelField:'PROVINCE' }
+];
+const LAYER_BY_KEY = {}; LAYER_DEFS.forEach(l => LAYER_BY_KEY[l.key] = l);
+
+// Restore persisted per-layer state (visibility / opacity) — falls back to catalogue defaults.
+const savedChecked = lsGet('checked', null);
+const savedOpacity = lsGet('opacity', null);
+LAYER_DEFS.forEach(l => {
+  l.checked = savedChecked && (l.key in savedChecked) ? !!savedChecked[l.key] : !!l.defaultChecked;
+  l.opacity = savedOpacity && (l.key in savedOpacity) ? savedOpacity[l.key] : 1;
+  l.instance = null; l.loading = false; l.count = null; l.extentBounds = null;
+});
+function persistChecked(){ const o={}; LAYER_DEFS.forEach(l=>o[l.key]=l.checked); lsSet('checked', o); }
+function persistOpacity(){ const o={}; LAYER_DEFS.forEach(l=>o[l.key]=l.opacity); lsSet('opacity', o); }
+
+let activeLayerKey = lsGet('activeLayer', null);
+let expandedCats = lsGet('expandedCats', {}); // category-key -> bool, default collapsed
+function persistExpanded(){ lsSet('expandedCats', expandedCats); }
+
+/* ============================= MAP + PANES ============================= */
+const map = L.map('map', { zoomControl:true, minZoom:3, maxZoom:20 }).setView([-29.0, 25.0], 6);
+
+// Custom panes — bottom to top: provinces < farms < parcels < servitudes < selection < KML < labels
+[['paneProvinces',401],['paneFarms',402],['paneParcels',403],['paneServitudes',404],['paneSelection',405],['paneKml',406],['paneLabels',407]].forEach(([name,z]) => {
+  const p = map.createPane(name); p.style.zIndex = z;
+  if(name === 'paneSelection' || name === 'paneKml' || name === 'paneLabels') p.style.pointerEvents = 'none';
+});
+const CAT_PANE = { parcels:'paneParcels', farms:'paneFarms', servitudes:'paneServitudes', admin:'paneProvinces' };
+
+// ---- Basemaps: Light / Dark / Satellite (aerial imagery) ----
+const baseLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution:'&copy; OpenStreetMap contributors &copy; CARTO', subdomains:'abcd', maxZoom:20
+});
+const baseDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution:'&copy; OpenStreetMap contributors &copy; CARTO', subdomains:'abcd', maxZoom:20
+});
+const baseSatImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution:'Imagery &copy; Esri, Maxar, Earthstar Geographics', maxZoom:20
+});
+const baseSatLabels = L.tileLayer('https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+  attribution:'', maxZoom:20, pane:'tilePane'
+});
+const baseSatellite = L.layerGroup([baseSatImagery, baseSatLabels]);
+
+const baseLayers = { 'Light': baseLight, 'Dark': baseDark, 'Satellite (Aerial Imagery)': baseSatellite };
+let savedBase = lsGet('baseLayer', 'Light');
+if(!baseLayers[savedBase]) savedBase = 'Light';
+baseLayers[savedBase].addTo(map);
+const layersControl = L.control.layers(baseLayers, null, { position:'topright', collapsed:true }).addTo(map);
+map.on('baselayerchange', e => { lsSet('baseLayer', e.name); syncThemeToBase(e.name); });
+
+L.control.scale({ position:'bottomleft', imperial:false, maxWidth:160 }).addTo(map);
+
+/* ============================= THEME ============================= */
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-toggle').innerHTML = theme==='dark' ? '&#9728;' : '&#9789;';
+  lsSet('theme', theme);
+}
+function syncThemeToBase(baseName){
+  // Keep UI chrome in step when the user explicitly picks the Dark / Light basemap.
+  if(baseName === 'Dark') applyTheme('dark');
+  else if(baseName === 'Light') applyTheme('light');
+}
+let currentTheme = lsGet('theme', 'light');
+applyTheme(currentTheme);
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme(currentTheme);
+  // If currently on a Light/Dark basemap, flip the tiles to match; leave Satellite alone.
+  if(savedBase === 'Light' || savedBase === 'Dark'){
+    const want = currentTheme === 'dark' ? 'Dark' : 'Light';
+    if(want !== savedBase){
+      map.removeLayer(baseLayers[savedBase]); baseLayers[want].addTo(map);
+      savedBase = want; lsSet('baseLayer', want);
+    }
+  }
 });
 
-/* ============================= MAP ============================= */
-const map = L.map('map', { zoomControl: true, minZoom: 3, maxZoom: 20 }).setView([-29.0, 25.0], 6);
-
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OpenStreetMap contributors &copy; CARTO — SG data &copy; DALRRD Chief Surveyor General',
-  subdomains: 'abcd', maxZoom: 20
-}).addTo(map);
-
+/* ============================= DOM refs ============================= */
 const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const zoomval = document.getElementById('zoomval');
-const layerListEl = document.getElementById('layer-list');
+const coordval = document.getElementById('coordval');
+const layerTreeEl = document.getElementById('layer-tree');
 const filterInput = document.getElementById('filter');
 const busyToast = document.getElementById('busy-toast');
 const busyText = document.getElementById('busy-text');
@@ -324,9 +430,23 @@ function setBusy(on, text){ busyToast.classList.toggle('show', on); if(text) bus
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function sanitizeFilename(name){ return String(name).replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'').toLowerCase() || 'layer'; }
 
+/* ============================= POPUPS ============================= */
+const HIDDEN_FIELDS = new Set(['OBJECTID','SHAPE','GID','SHAPE_Length','SHAPE_Area','GEOM_AREA','GEOM_LENGT','DATE_PROCESSED','TAG_X','TAG_Y','TAG_SIZE','TAG_ANGLE','TAG_JUST']);
+const PRIORITY_FIELDS = ['TAG_VALUE','PRCL_KEY','FARM_NAME','PORTION','PROVINCE','EASE_TYPE','ID','LSTATUS','WSTATUS','DATE_STAMP'];
+function prettifyKey(k){ return k.replace(/_/g,' ').replace(/\w\S*/g, t => t.charAt(0).toUpperCase()+t.slice(1).toLowerCase()); }
+function prettifyValue(k, v){
+  if(k === 'DATE_STAMP' && typeof v === 'number'){ try{ return new Date(v).toLocaleDateString(); }catch(e){} }
+  return v;
+}
 function popupHtmlFor(props, layerName){
-  const keys = Object.keys(props||{}).filter(k => props[k] !== null && props[k] !== '').slice(0, 25);
-  const rows = keys.map(k => `<tr><td class="k">${escapeHtml(k)}</td><td>${escapeHtml(props[k])}</td></tr>`).join('');
+  const all = Object.keys(props||{}).filter(k => props[k] !== null && props[k] !== '' && !HIDDEN_FIELDS.has(k));
+  all.sort((a,b) => {
+    const pa = PRIORITY_FIELDS.indexOf(a), pb = PRIORITY_FIELDS.indexOf(b);
+    if(pa!==-1 || pb!==-1) return (pa===-1?999:pa) - (pb===-1?999:pb);
+    return a.localeCompare(b);
+  });
+  const keys = all.slice(0, 20);
+  const rows = keys.map(k => `<tr><td class="k">${escapeHtml(prettifyKey(k))}</td><td>${escapeHtml(prettifyValue(k, props[k]))}</td></tr>`).join('');
   return `<div class="popup-title">${escapeHtml(layerName)}</div><table class="popup-table">${rows || '<tr><td class="popup-empty">No attributes</td></tr>'}</table>`;
 }
 
@@ -338,75 +458,510 @@ function downloadBlob(blob, filename){
   setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
 
-/* ===================== BROWSE MODE (scale-gated) ===================== */
-const layers = LAYER_DEFS.map(def => ({ ...def, checked: !!def.defaultChecked, instance: null, loading: false }));
+/* ============================= SELECTION HIGHLIGHT ============================= */
+let selectionLayer = L.layerGroup([], { pane:'paneSelection' }).addTo(map);
+function clearSelection(){ selectionLayer.clearLayers(); }
+function selectFeature(geojsonFeature){
+  clearSelection();
+  try{
+    L.geoJSON(geojsonFeature, {
+      pane:'paneSelection', interactive:false,
+      style:{ color:'#20c4ff', weight:4, opacity:.95, fill:false, dashArray:null },
+      pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:9,color:'#20c4ff',weight:3,fill:false})
+    }).addTo(selectionLayer);
+  }catch(e){}
+}
+map.on('click', () => clearSelection());
 
+/* ============================= LABEL ENGINE =============================
+   Renders TAG_VALUE (or PROVINCE for the Provinces layer) at the TAG_X/TAG_Y
+   anchor supplied by the SG data, honouring TAG_SIZE / TAG_ANGLE / TAG_JUST,
+   only when the label fits inside its polygon, and avoiding overlaps with
+   other labels via screen-space collision detection. */
+const _measureCanvas = document.createElement('canvas');
+const _measureCtx = _measureCanvas.getContext('2d');
+function measureText(text, fontSize, bold){
+  _measureCtx.font = `${bold?'700':'600'} ${fontSize}px Arial, sans-serif`;
+  const w = _measureCtx.measureText(text).width;
+  return { w, h: fontSize * 1.15 };
+}
+function justToAlign(just){
+  if(!just || typeof just !== 'string') return 'center';
+  const h = just.charAt(just.length-1).toUpperCase();
+  if(h === 'L') return 'left'; if(h === 'R') return 'right'; return 'center';
+}
+function boxesOverlap(a, b, pad){
+  pad = pad || 0;
+  return !(a.maxX+pad < b.minX || a.minX-pad > b.maxX || a.maxY+pad < b.minY || a.minY-pad > b.maxY);
+}
+function metersPerPixel(latlng){
+  const p1 = map.latLngToContainerPoint(latlng);
+  const ll2 = map.containerPointToLatLng(L.point(p1.x+20, p1.y));
+  return map.distance(latlng, ll2) / 20;
+}
+function ringOfPartContaining(geometry, lng, lat){
+  const pt = turf.point([lng, lat]);
+  try{
+    if(geometry.type === 'Polygon'){
+      if(turf.booleanPointInPolygon(pt, turf.polygon(geometry.coordinates))) return geometry.coordinates[0];
+      return geometry.coordinates[0]; // fall back to exterior ring even if slightly outside (data anchor is trusted)
+    }
+    if(geometry.type === 'MultiPolygon'){
+      for(const part of geometry.coordinates){
+        if(turf.booleanPointInPolygon(pt, turf.polygon(part))) return part[0];
+      }
+      // none matched exactly — use the largest part as a reasonable fallback
+      let best = geometry.coordinates[0], bestArea = -1;
+      geometry.coordinates.forEach(part => { try{ const a = turf.area(turf.polygon(part)); if(a>bestArea){ bestArea=a; best=part[0]; } }catch(e){} });
+      return best;
+    }
+  }catch(e){}
+  return null;
+}
+function fitsInsidePolygon(geometry, anchorLatLng, halfW, halfH){
+  try{
+    const ring = ringOfPartContaining(geometry, anchorLatLng.lng, anchorLatLng.lat);
+    if(!ring) return false;
+    const line = turf.lineString(ring);
+    const distKm = turf.pointToLineDistance(turf.point([anchorLatLng.lng, anchorLatLng.lat]), line, { units:'kilometers' });
+    const mpp = metersPerPixel(anchorLatLng);
+    const distPx = (distKm * 1000) / (mpp || 1);
+    const needed = Math.hypot(halfW, halfH);
+    return distPx >= needed;
+  }catch(e){ return true; } // fail open — better an occasional label than none
+}
+
+const LabelEngine = {
+  group: L.layerGroup([], { pane:'paneLabels' }).addTo(map),
+  sources: new Map(),
+  _timer: null,
+  enabled: true,
+  register(layerDef, esriLayer){ this.sources.set(layerDef.key, { layerDef, esriLayer }); this.scheduleRefresh(); },
+  unregister(key){ this.sources.delete(key); this.scheduleRefresh(); },
+  scheduleRefresh(){ clearTimeout(this._timer); this._timer = setTimeout(() => this.refresh(), 150); },
+  refresh(){
+    this.group.clearLayers();
+    if(!this.enabled) return;
+    const zoom = map.getZoom();
+    const bounds = map.getBounds().pad(0.15);
+    let candidates = [];
+    this.sources.forEach(({ layerDef, esriLayer }) => {
+      if(!layerDef.checked) return;
+      if(!layerDef.alwaysVisible && zoom < layerDef.minZoom) return;
+      if(!esriLayer || !esriLayer.eachFeature) return;
+      esriLayer.eachFeature(featLayer => {
+        const f = featLayer.feature; if(!f || !f.properties) return;
+        const p = f.properties;
+        const text = p[layerDef.labelField];
+        if(!text) return;
+        let anchor = null;
+        if(layerDef.type === 'polygon' && typeof p.TAG_X === 'number' && typeof p.TAG_Y === 'number' && isFinite(p.TAG_X) && isFinite(p.TAG_Y) && (p.TAG_X||p.TAG_Y)){
+          anchor = L.latLng(p.TAG_Y, p.TAG_X);
+        } else {
+          try{ const c = turf.pointOnFeature(f); anchor = L.latLng(c.geometry.coordinates[1], c.geometry.coordinates[0]); }
+          catch(e){ if(featLayer.getBounds) anchor = featLayer.getBounds().getCenter(); else if(featLayer.getLatLng) anchor = featLayer.getLatLng(); }
+        }
+        if(!anchor || !bounds.contains(anchor)) return;
+        let area = 0; try{ area = f.geometry ? turf.area(f) : 0; }catch(e){}
+        candidates.push({ text:String(text), anchor, feature:f, layerDef, angle:p.TAG_ANGLE||0, size:p.TAG_SIZE, just:p.TAG_JUST, area });
+      });
+    });
+    candidates.sort((a,b) => b.area - a.area);
+
+    const placed = [];
+    candidates.forEach(c => {
+      const pt = map.latLngToLayerPoint(c.anchor);
+      const fontSize = Math.max(9, Math.min(14, Math.round(c.size) || 10));
+      const bold = !!c.layerDef.labelBold;
+      const angleDeg = (c.angle || 0) * 180 / Math.PI;
+      const dims = measureText(c.text, fontSize, bold);
+      const rad = angleDeg * Math.PI / 180;
+      const halfW = Math.abs(dims.w/2*Math.cos(rad)) + Math.abs(dims.h/2*Math.sin(rad));
+      const halfH = Math.abs(dims.w/2*Math.sin(rad)) + Math.abs(dims.h/2*Math.cos(rad));
+      const box = { minX:pt.x-halfW, maxX:pt.x+halfW, minY:pt.y-halfH, maxY:pt.y+halfH };
+      for(let i=0;i<placed.length;i++){ if(boxesOverlap(box, placed[i], 2)) return; }
+      if(c.layerDef.type === 'polygon'){
+        if(!fitsInsidePolygon(c.feature.geometry, c.anchor, dims.w/2, dims.h/2)) return;
+      }
+      placed.push(box);
+      const align = justToAlign(c.just);
+      const html = `<div class="feat-label" style="color:${c.layerDef.color};font-size:${fontSize}px;font-weight:${bold?700:600};text-align:${align};transform:translate(-50%,-50%) rotate(${-angleDeg}deg);">${escapeHtml(c.text)}</div>`;
+      const icon = L.divIcon({ className:'', html, iconSize:[0,0] });
+      L.marker(c.anchor, { icon, pane:'paneLabels', interactive:false }).addTo(this.group);
+    });
+  }
+};
+
+/* ============================= LAYER INSTANCES ============================= */
 function createInstance(l){
   const opts = {
     url: `${SERVICE_URL}/${l.id}`,
-    simplifyFactor: 0.5,
+    simplifyFactor: 0.4,
     precision: 6,
     fields: ['*'],
-    onEachFeature: (feature, layer) => layer.bindPopup(() => popupHtmlFor(feature.properties, l.name), { maxHeight: 280 })
+    pane: CAT_PANE[l.cat],
+    onEachFeature: (feature, layer) => {
+      layer.bindPopup(() => popupHtmlFor(feature.properties, l.name), { maxHeight:280 });
+      layer.on('click', () => selectFeature(feature));
+    }
   };
-  if(l.type === 'point'){
-    opts.pointToLayer = (g, latlng) => L.circleMarker(latlng, { radius:4, color:l.color, weight:1, fillColor:l.color, fillOpacity:0.9 });
-  } else if(l.type === 'polyline'){
-    opts.style = () => ({ color:l.color, weight:2, opacity:0.9 });
+  if(l.type === 'polyline'){
+    opts.style = () => ({ color:l.color, weight:l.weight, opacity:0.9*l.opacity, dashArray:l.dash||null });
   } else {
-    opts.style = () => ({ color:l.color, weight:1, fillColor:l.color, fillOpacity:0.12, opacity:0.85 });
+    opts.style = () => ({ color:l.color, weight:l.weight, opacity:0.9*l.opacity, fillColor:l.color, fillOpacity:(l.fillOpacity??0.05)*l.opacity, dashArray:l.dash||null });
   }
   const inst = L.esri.featureLayer(opts);
   inst.on('loading', () => { l.loading = true; refreshStatus(); });
-  inst.on('load', () => { l.loading = false; refreshStatus(); });
+  inst.on('load', () => {
+    l.loading = false;
+    try{ l.count = inst.getLayers ? inst.getLayers().length : null; }catch(e){ l.count = null; }
+    refreshStatus(); renderLayerTree(); LabelEngine.scheduleRefresh();
+  });
   inst.on('requesterror', () => { l.loading = false; refreshStatus(); });
   return inst;
 }
-function isAboveScale(l){ return map.getZoom() >= l.minZoom; }
+function isAboveScale(l){ return l.alwaysVisible || map.getZoom() >= l.minZoom; }
 function syncLayer(l){
   const shouldShow = l.checked && isAboveScale(l);
   if(shouldShow){
     if(!l.instance) l.instance = createInstance(l);
     if(!map.hasLayer(l.instance)) l.instance.addTo(map);
-  } else if(l.instance && map.hasLayer(l.instance)) map.removeLayer(l.instance);
+    LabelEngine.register(l, l.instance); // re-register every time it's shown (survives hide/show cycles)
+  } else if(l.instance && map.hasLayer(l.instance)){
+    map.removeLayer(l.instance);
+  }
+  if(!l.checked){ LabelEngine.unregister(l.key); }
 }
-function syncAllLayers(){ layers.forEach(syncLayer); refreshStatus(); }
+function syncAllLayers(){ LAYER_DEFS.forEach(syncLayer); refreshStatus(); renderLegend(); LabelEngine.scheduleRefresh(); }
+function applyLayerOpacity(l){
+  if(l.instance && l.instance.setStyle){
+    try{
+      if(l.type==='polyline') l.instance.setStyle({ opacity:0.9*l.opacity });
+      else l.instance.setStyle({ opacity:0.9*l.opacity, fillOpacity:(l.fillOpacity??0.05)*l.opacity });
+    }catch(e){}
+  }
+}
 function refreshStatus(){
   zoomval.textContent = 'z' + map.getZoom();
-  const activeCount = layers.filter(l => l.instance && map.hasLayer(l.instance)).length;
-  const loadingAny = layers.some(l => l.loading);
-  const belowScaleChecked = layers.filter(l => l.checked && !isAboveScale(l)).length;
-  let text = `Live · ${activeCount} browse layer(s) rendering`;
+  const activeCount = LAYER_DEFS.filter(l => l.instance && map.hasLayer(l.instance)).length;
+  const loadingAny = LAYER_DEFS.some(l => l.loading);
+  const belowScaleChecked = LAYER_DEFS.filter(l => l.checked && !isAboveScale(l)).length;
+  let text = `Live · ${activeCount} layer(s) rendering`;
   if(belowScaleChecked) text += ` · ${belowScaleChecked} waiting for zoom`;
   setStatus(text, loadingAny ? 'loading' : '');
 }
-function renderLayerList(){
-  layerListEl.innerHTML = '';
-  const q = filterInput.value.trim().toLowerCase();
-  layers.filter(l => l.name.toLowerCase().includes(q) || String(l.id).includes(q)).forEach(l => {
-    const below = l.checked && !isAboveScale(l);
-    const row = document.createElement('div');
-    row.className = 'layer-item' + (l.checked ? ' active' : '') + (below ? ' below-scale' : '');
-    row.innerHTML = `
-      <input type="checkbox" id="chk-${l.id}" ${l.checked ? 'checked' : ''}/>
-      <span class="swatch" style="background:${l.color}"></span>
-      <label for="chk-${l.id}">${escapeHtml(l.name)}</label>
-      ${below ? `<span class="hint">zoom ${l.minZoom}+</span>` : ''}
-      <span class="id">#${l.id}</span>`;
-    row.querySelector('input').addEventListener('change', (e) => {
-      l.checked = e.target.checked; syncLayer(l); renderLayerList(); refreshStatus();
-    });
-    layerListEl.appendChild(row);
-  });
-}
-document.getElementById('btn-all').addEventListener('click', () => { layers.forEach(l => l.checked = true); syncAllLayers(); renderLayerList(); });
-document.getElementById('btn-none').addEventListener('click', () => { layers.forEach(l => l.checked = false); syncAllLayers(); renderLayerList(); });
-document.getElementById('btn-extent').addEventListener('click', () => { if(fullExtent) map.fitBounds(fullExtent); });
-filterInput.addEventListener('input', renderLayerList);
-map.on('zoomend', () => { syncAllLayers(); renderLayerList(); });
-map.on('moveend', refreshStatus);
-document.getElementById('browse-toggle').addEventListener('click', () => document.getElementById('browse-panel').classList.toggle('collapsed'));
 
+/* ============================= SIDEBAR: LAYER TREE ============================= */
+function setActiveLayer(key){
+  activeLayerKey = (activeLayerKey === key) ? null : key;
+  lsSet('activeLayer', activeLayerKey);
+  renderLayerTree();
+}
+function renderLayerTree(){
+  const q = filterInput.value.trim().toLowerCase();
+  layerTreeEl.innerHTML = '';
+  CATEGORY_DEFS.forEach(cat => {
+    const catLayers = LAYER_DEFS.filter(l => l.cat === cat.key && (!q || l.name.toLowerCase().includes(q)));
+    if(!catLayers.length) return;
+    const expanded = !!expandedCats[cat.key] || !!q; // auto-expand while searching
+    const checkedCount = catLayers.filter(l=>l.checked).length;
+
+    const catEl = document.createElement('div');
+    catEl.className = 'cat' + (expanded ? ' expanded' : '');
+    catEl.innerHTML = `
+      <div class="cat-head"><span class="chev">&#9656;</span><span class="cat-name">${escapeHtml(cat.name)}</span><span class="cat-badge">${checkedCount}/${catLayers.length}</span></div>
+      <div class="cat-body-wrap"><div class="cat-body-inner"><div class="cat-rows"></div></div></div>`;
+    catEl.querySelector('.cat-head').addEventListener('click', () => {
+      expandedCats[cat.key] = !expandedCats[cat.key]; persistExpanded(); renderLayerTree();
+    });
+    const rowsEl = catEl.querySelector('.cat-rows');
+
+    catLayers.forEach(l => {
+      const below = l.checked && !isAboveScale(l);
+      const row = document.createElement('div');
+      row.className = 'layer-row' + (l.checked?' checked':'') + (below?' below-scale':'') + (activeLayerKey===l.key?' active':'');
+      row.innerHTML = `
+        <input type="checkbox" id="chk-${l.key}" ${l.checked?'checked':''}/>
+        <span class="swatch" style="background:${l.fillOpacity? l.color : 'transparent'};border-color:${l.color};${l.dash?`background-image:none;border-style:dashed;`:''}"></span>
+        <label for="chk-${l.key}">${escapeHtml(l.name)}</label>
+        ${l.count!==null ? `<span class="count">${l.count}</span>` : ''}
+        ${below ? `<span class="hint">zoom ${l.minZoom}+</span>` : ''}`;
+      row.querySelector('input').addEventListener('click', e => e.stopPropagation());
+      row.querySelector('input').addEventListener('change', e => {
+        l.checked = e.target.checked; persistChecked(); syncLayer(l); syncAllLayers(); renderLayerTree();
+      });
+      row.addEventListener('click', () => setActiveLayer(l.key));
+      row.addEventListener('contextmenu', e => { e.preventDefault(); openCtxMenu(e.clientX, e.clientY, l.key); });
+      rowsEl.appendChild(row);
+
+      if(activeLayerKey === l.key){
+        const detail = document.createElement('div');
+        detail.className = 'layer-detail';
+        detail.innerHTML = `
+          <div class="row"><label>Opacity</label><input type="range" min="0" max="100" value="${Math.round(l.opacity*100)}"/><span class="opv">${Math.round(l.opacity*100)}%</span></div>
+          <div class="actions">
+            <button data-act="extent">Zoom to extent</button>
+            <button data-act="isolate">Show only this</button>
+          </div>`;
+        detail.addEventListener('click', e => e.stopPropagation());
+        const range = detail.querySelector('input[type=range]');
+        const opv = detail.querySelector('.opv');
+        range.addEventListener('input', () => { const v=Number(range.value); opv.textContent=v+'%'; l.opacity=v/100; applyLayerOpacity(l); LabelEngine.scheduleRefresh(); });
+        range.addEventListener('change', persistOpacity);
+        detail.querySelector('[data-act="extent"]').addEventListener('click', () => zoomToLayerExtent(l));
+        detail.querySelector('[data-act="isolate"]').addEventListener('click', () => { LAYER_DEFS.forEach(o=>o.checked=(o.key===l.key)); persistChecked(); syncAllLayers(); renderLayerTree(); });
+        rowsEl.appendChild(detail);
+      }
+    });
+    layerTreeEl.appendChild(catEl);
+  });
+  if(!layerTreeEl.children.length){ layerTreeEl.innerHTML = `<div class="popup-empty" style="padding:10px 16px;">No layers match “${escapeHtml(q)}”.</div>`; }
+}
+function zoomToLayerExtent(l){
+  if(l.extentBounds) map.fitBounds(l.extentBounds, { padding:[40,40] });
+  else if(fullExtent) map.fitBounds(fullExtent);
+}
+document.getElementById('btn-all').addEventListener('click', () => { LAYER_DEFS.forEach(l=>l.checked=true); persistChecked(); syncAllLayers(); renderLayerTree(); });
+document.getElementById('btn-none').addEventListener('click', () => { LAYER_DEFS.forEach(l=>l.checked=false); persistChecked(); syncAllLayers(); renderLayerTree(); });
+document.getElementById('btn-extent').addEventListener('click', () => { if(fullExtent) map.fitBounds(fullExtent); });
+document.getElementById('btn-expand-all').addEventListener('click', () => { CATEGORY_DEFS.forEach(c=>expandedCats[c.key]=true); persistExpanded(); renderLayerTree(); });
+document.getElementById('btn-collapse-all').addEventListener('click', () => { CATEGORY_DEFS.forEach(c=>expandedCats[c.key]=false); persistExpanded(); renderLayerTree(); });
+filterInput.addEventListener('input', renderLayerTree);
+map.on('zoomend', () => { syncAllLayers(); renderLayerTree(); });
+map.on('moveend', () => { refreshStatus(); LabelEngine.scheduleRefresh(); });
+
+/* ---- context menu ---- */
+const ctxMenuEl = document.getElementById('ctx-menu');
+function openCtxMenu(x, y, key){
+  const l = LAYER_BY_KEY[key];
+  ctxMenuEl.innerHTML = `
+    <button data-a="toggle">${l.checked?'Hide layer':'Show layer'}</button>
+    <button data-a="isolate">Show only this layer</button>
+    <button data-a="all">Show all layers</button>
+    <button data-a="extent">Zoom to extent</button>`;
+  ctxMenuEl.style.left = x+'px'; ctxMenuEl.style.top = y+'px'; ctxMenuEl.classList.add('open');
+  ctxMenuEl.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    const a = b.getAttribute('data-a');
+    if(a==='toggle'){ l.checked = !l.checked; persistChecked(); syncLayer(l); syncAllLayers(); }
+    else if(a==='isolate'){ LAYER_DEFS.forEach(o=>o.checked=(o.key===key)); persistChecked(); syncAllLayers(); }
+    else if(a==='all'){ LAYER_DEFS.forEach(o=>o.checked=true); persistChecked(); syncAllLayers(); }
+    else if(a==='extent'){ zoomToLayerExtent(l); }
+    ctxMenuEl.classList.remove('open'); renderLayerTree();
+  }));
+}
+document.addEventListener('click', () => ctxMenuEl.classList.remove('open'));
+
+/* ============================= LEGEND CONTROL ============================= */
+const LegendControl = L.control({ position:'bottomright' });
+LegendControl.onAdd = function(){
+  const div = L.DomUtil.create('div', 'leaflet-control');
+  div.id = 'map-legend';
+  div.classList.add('collapsed');
+  div.innerHTML = `<div class="lg-head"><b>Legend</b><span class="chev">&#9662;</span></div><div class="lg-body"></div>`;
+  L.DomEvent.disableClickPropagation(div);
+  div.querySelector('.lg-head').addEventListener('click', () => div.classList.toggle('collapsed'));
+  return div;
+};
+LegendControl.addTo(map);
+function renderLegend(){
+  const body = document.querySelector('#map-legend .lg-body');
+  if(!body) return;
+  const visible = LAYER_DEFS.filter(l => l.checked);
+  if(!visible.length){ body.innerHTML = '<div class="lg-empty">No layers visible</div>'; return; }
+  body.innerHTML = visible.map(l => l.type==='polyline'
+    ? `<div class="lg-row"><span class="ln" style="border-color:${l.color}"></span>${escapeHtml(l.name)}</div>`
+    : `<div class="lg-row"><span class="sw" style="border:1.5px solid ${l.color};background:${l.color}22"></span>${escapeHtml(l.name)}</div>`
+  ).join('');
+}
+
+/* ============================= COORDINATE READOUT ============================= */
+map.on('mousemove', e => { coordval.textContent = e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5); });
+map.on('mouseout', () => { coordval.textContent = '—'; });
+
+/* ============================= RESPONSIVE SIDEBAR ============================= */
+const sidebarEl = document.getElementById('sidebar');
+const scrimEl = document.getElementById('sidebar-scrim');
+function setSidebarOpen(open){
+  sidebarEl.classList.toggle('open', open);
+  scrimEl.classList.toggle('show', open);
+}
+document.getElementById('sidebar-toggle').addEventListener('click', () => setSidebarOpen(!sidebarEl.classList.contains('open')));
+scrimEl.addEventListener('click', () => setSidebarOpen(false));
+
+/* ============================= KEYBOARD SHORTCUTS ============================= */
+const shortcutsPop = document.getElementById('shortcuts-pop');
+document.getElementById('shortcuts-btn').addEventListener('click', e => { e.stopPropagation(); shortcutsPop.classList.toggle('open'); });
+document.addEventListener('click', () => shortcutsPop.classList.remove('open'));
+document.addEventListener('keydown', e => {
+  const tag = (e.target && e.target.tagName) || '';
+  if(tag === 'INPUT' || tag === 'TEXTAREA'){
+    if(e.key === 'Escape') e.target.blur();
+    return;
+  }
+  if(e.key === '/'){ e.preventDefault(); filterInput.focus(); }
+  else if(e.key.toLowerCase() === 'd'){ document.getElementById('theme-toggle').click(); }
+  else if(e.key.toLowerCase() === 'l'){ setSidebarOpen(!sidebarEl.classList.contains('open')); }
+  else if(e.key === '?'){ shortcutsPop.classList.toggle('open'); }
+  else if(e.key === 'Escape'){ clearSelection(); ctxMenuEl.classList.remove('open'); shortcutsPop.classList.remove('open'); cancelMeasurement(); cancelDrawAoi(); }
+});
+
+/* ============================= SHARED "ACTIVE TOOL" HINT BANNER =============================
+   Used by both the measurement tool and the manual AOI drawing tool to show
+   instructions + a Cancel button while an interactive drawing mode is active. */
+let activeInteractionCancel = null;
+function showHint(text, cancelFn){
+  document.getElementById('hint-text').textContent = text;
+  document.getElementById('hint-toast').classList.add('show');
+  activeInteractionCancel = cancelFn || null;
+}
+function hideHint(){
+  document.getElementById('hint-toast').classList.remove('show');
+  activeInteractionCancel = null;
+}
+document.getElementById('hint-cancel').addEventListener('click', () => { if(activeInteractionCancel) activeInteractionCancel(); });
+
+// Measuring / drawing an AOI share the map with clickable, popup-bearing cadastral
+// layers. While either tool is active, feature popups and selection must be
+// completely switched off — not just worked around — so every click goes
+// straight to placing a point. See the #app.tools-active CSS rule above.
+function setToolsActive(active){
+  document.getElementById('app').classList.toggle('tools-active', active);
+  if(active) map.closePopup();
+}
+
+/* ============================= MEASUREMENT TOOL ============================= */
+const MeasureControl = L.control({ position:'topright' });
+let measureMode = null; // 'distance' | 'area' | null
+let measurePoints = [];
+let measureLayer = L.layerGroup().addTo(map);
+let measureFinished = L.layerGroup().addTo(map);
+let measureTooltip = null;
+
+MeasureControl.onAdd = function(){
+  const div = L.DomUtil.create('div', 'leaflet-control');
+  div.id = 'measure-ctl';
+  div.innerHTML = `<button data-m="distance">&#128207; Measure distance</button><button data-m="area">&#9635; Measure area</button><button data-m="clear">Clear measurements</button>`;
+  L.DomEvent.disableClickPropagation(div);
+  div.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    const m = b.getAttribute('data-m');
+    if(m === 'clear'){ measureFinished.clearLayers(); cancelMeasurement(); return; }
+    startMeasure(m);
+  }));
+  return div;
+};
+MeasureControl.addTo(map);
+function updateMeasureButtons(){
+  document.querySelectorAll('#measure-ctl button').forEach(b => b.classList.toggle('active', b.getAttribute('data-m') === measureMode));
+}
+function startMeasure(mode){
+  cancelMeasurement();
+  cancelDrawAoi();
+  measureMode = mode; measurePoints = [];
+  updateMeasureButtons();
+  map.getContainer().style.cursor = 'crosshair';
+  setToolsActive(true);
+  showHint(mode === 'area'
+    ? 'Click to add points. Double-click to finish the area, Esc to cancel.'
+    : 'Click to add points. Double-click to finish the line, Esc to cancel.', cancelMeasurement);
+}
+function cancelMeasurement(){
+  if(!measureMode && !measureLayer.getLayers().length) return;
+  measureMode = null; measurePoints = [];
+  measureLayer.clearLayers();
+  if(measureTooltip){ map.closeTooltip(measureTooltip); measureTooltip = null; }
+  updateMeasureButtons();
+  map.getContainer().style.cursor = '';
+  if(!drawingAoi) setToolsActive(false);
+  hideHint();
+}
+function fmtLength(m){ return m < 1000 ? m.toFixed(0)+' m' : (m/1000).toFixed(2)+' km'; }
+function fmtArea(m2){ return m2 < 10000 ? m2.toFixed(0)+' m²' : (m2/10000).toFixed(2)+' ha'; }
+map.on('click', e => {
+  if(!measureMode) return;
+  measurePoints.push([e.latlng.lng, e.latlng.lat]);
+  measureLayer.clearLayers();
+  measurePoints.forEach(p => L.circleMarker([p[1],p[0]], { radius:4, color:'#20c4ff', weight:2, fillColor:'#fff', fillOpacity:1 }).addTo(measureLayer));
+  if(measureMode === 'distance' && measurePoints.length > 1){
+    const line = L.polyline(measurePoints.map(p=>[p[1],p[0]]), { color:'#20c4ff', weight:3, dashArray:'6,4' }).addTo(measureLayer);
+    const len = turf.length(turf.lineString(measurePoints), { units:'meters' });
+    line.bindTooltip(fmtLength(len), { permanent:true, direction:'right', className:'measure-tip' }).openTooltip();
+  } else if(measureMode === 'area' && measurePoints.length > 2){
+    const ring = measurePoints.concat([measurePoints[0]]);
+    const poly = L.polygon(measurePoints.map(p=>[p[1],p[0]]), { color:'#20c4ff', weight:2, fillColor:'#20c4ff', fillOpacity:.15 }).addTo(measureLayer);
+    const area = turf.area(turf.polygon([ring]));
+    poly.bindTooltip(fmtArea(area), { permanent:true, direction:'center', className:'measure-tip' }).openTooltip();
+  }
+});
+map.on('dblclick', e => {
+  if(!measureMode) return;
+  L.DomEvent.stop(e);
+  if(measurePoints.length > 1){ measureLayer.eachLayer(l => measureFinished.addLayer(l)); }
+  cancelMeasurement();
+});
+
+/* ============================= MANUAL AOI DRAWING =============================
+   Lets the user define an Area of Interest by drawing a polygon straight on the
+   map, as an alternative to dragging in a KML/KMZ file. Feeds the finished
+   polygon into the same loadAOI() pipeline used for dropped files. */
+const btnDrawAoi = document.getElementById('btn-draw-aoi');
+let drawingAoi = false;
+let drawPoints = [];
+let drawLayer = L.layerGroup().addTo(map);
+
+btnDrawAoi.addEventListener('click', () => { drawingAoi ? cancelDrawAoi() : startDrawAoi(); });
+
+function startDrawAoi(){
+  cancelMeasurement();
+  cancelDrawAoi();
+  drawingAoi = true; drawPoints = [];
+  btnDrawAoi.classList.add('active');
+  map.getContainer().style.cursor = 'crosshair';
+  setToolsActive(true);
+  showHint('Click to place boundary points. Double-click, or click the first point again, to close the area. Esc to cancel.', cancelDrawAoi);
+}
+function cancelDrawAoi(){
+  if(!drawingAoi && !drawPoints.length) return;
+  drawingAoi = false; drawPoints = [];
+  drawLayer.clearLayers();
+  btnDrawAoi.classList.remove('active');
+  map.getContainer().style.cursor = '';
+  if(!measureMode) setToolsActive(false);
+  hideHint();
+}
+function renderDrawPreview(){
+  drawLayer.clearLayers();
+  const latlngs = drawPoints.map(p => [p[1], p[0]]);
+  if(latlngs.length > 2){
+    L.polygon(latlngs, { color:'#e2231a', weight:2.5, dashArray:'6,4', fillColor:'#e2231a', fillOpacity:.08 }).addTo(drawLayer);
+  } else if(latlngs.length === 2){
+    L.polyline(latlngs, { color:'#e2231a', weight:2.5, dashArray:'6,4' }).addTo(drawLayer);
+  }
+  drawPoints.forEach((p,i) => L.circleMarker([p[1],p[0]], { radius: i===0?6:4, color:'#e2231a', weight:2, fillColor:'#fff', fillOpacity:1 }).addTo(drawLayer));
+}
+function finishDrawAoi(){
+  if(drawPoints.length < 3){ cancelDrawAoi(); return; }
+  const ring = drawPoints.concat([drawPoints[0]]);
+  const fc = { type:'FeatureCollection', features:[{ type:'Feature', properties:{}, geometry:{ type:'Polygon', coordinates:[ring] } }] };
+  cancelDrawAoi();
+  loadAOI(fc, 'Manually drawn area');
+}
+map.on('click', e => {
+  if(!drawingAoi) return;
+  if(drawPoints.length >= 3){
+    const startPx = map.latLngToContainerPoint([drawPoints[0][1], drawPoints[0][0]]);
+    const clickPx = map.latLngToContainerPoint(e.latlng);
+    if(startPx.distanceTo(clickPx) < 12){ finishDrawAoi(); return; }
+  }
+  drawPoints.push([e.latlng.lng, e.latlng.lat]);
+  renderDrawPreview();
+});
+map.on('dblclick', e => {
+  if(!drawingAoi) return;
+  L.DomEvent.stop(e);
+  finishDrawAoi();
+});
+
+/* ============================= INIT: service metadata + per-layer extents ============================= */
 fetch(SERVICE_URL + '?f=json').then(r => r.json()).then(meta => {
   if(meta.fullExtent){
     try{
@@ -415,8 +970,21 @@ fetch(SERVICE_URL + '?f=json').then(r => r.json()).then(meta => {
       fullExtent = L.latLngBounds(sw, ne);
     } catch(e){}
   }
-  renderLayerList(); syncAllLayers();
-}).catch(() => { renderLayerList(); syncAllLayers(); });
+  renderLayerTree(); syncAllLayers();
+}).catch(() => { renderLayerTree(); syncAllLayers(); });
+
+Promise.allSettled(LAYER_DEFS.map(l => fetch(`${SERVICE_URL}/${l.id}?f=json`).then(r=>r.json()))).then(results => {
+  results.forEach((res, i) => {
+    if(res.status !== 'fulfilled') return;
+    const ext = res.value && res.value.extent;
+    if(!ext) return;
+    try{
+      const sw = L.CRS.EPSG3857.unproject(L.point(ext.xmin, ext.ymin));
+      const ne = L.CRS.EPSG3857.unproject(L.point(ext.xmax, ext.ymax));
+      LAYER_DEFS[i].extentBounds = L.latLngBounds(sw, ne);
+    }catch(e){}
+  });
+});
 
 /* ===================== AOI: DRAG & DROP KML/KMZ ===================== */
 const dropOverlay = document.getElementById('drop-overlay');
@@ -472,26 +1040,36 @@ async function handleDroppedFile(file){
 function clearAOI(){
   if(aoiLayer){ map.removeLayer(aoiLayer); aoiLayer = null; }
   aoiResultsGroup.clearLayers();
+  aoiResults.forEach(r => LabelEngine.unregister('aoi_'+r.layerDef.key));
   aoiResults = [];
   aoiGeojson = null;
   aoiBody.classList.add('placeholder');
-  aoiBody.innerHTML = `<div class="dz-hint">Drag &amp; drop a <b>.kml</b> or <b>.kmz</b> file anywhere on the map to define your area of interest. All intersecting SG layers will be found automatically.</div>`;
+  aoiBody.innerHTML = `<div class="dz-hint">Drag &amp; drop a <b>.kml</b> or <b>.kmz</b> file anywhere on the map, or click the <b>&#9998;</b> pencil above to draw an area directly on the map. All intersecting SG layers will be found automatically.</div>`;
+  LabelEngine.scheduleRefresh();
 }
 
-async function loadAOI(geojson, filename){
+function loadAOI(geojson, filename){
+  return loadAOIImpl(geojson, filename);
+}
+async function loadAOIImpl(geojson, filename){
   clearAOI();
   aoiGeojson = geojson;
-  aoiLayer = L.geoJSON(geojson, {
-    style: { color:'#d69a3f', weight:2.5, dashArray:'7,5', fillColor:'#d69a3f', fillOpacity:0.06 },
-    pointToLayer: (f, latlng) => L.circleMarker(latlng, { radius:6, color:'#d69a3f', weight:2, fillOpacity:0.4 })
-  }).addTo(map);
-  const bounds = aoiLayer.getBounds();
+
+  // KML boundary — always on top, no fill, thick red, with a soft halo for contrast against imagery.
+  aoiLayer = L.layerGroup([
+    L.geoJSON(geojson, { pane:'paneKml', interactive:false, style:{ color:'#ff2b2b', weight:11, opacity:.22, fill:false } }),
+    L.geoJSON(geojson, {
+      pane:'paneKml', style:{ color:'#e2231a', weight:4.5, opacity:1, fill:false },
+      pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:7,color:'#e2231a',weight:3,fill:false})
+    })
+  ]).addTo(map);
+  const bounds = L.geoJSON(geojson).getBounds();
   if(bounds.isValid()) map.fitBounds(bounds, { padding:[60,60] });
 
   aoiBody.classList.remove('placeholder');
-  aoiBody.innerHTML = `<div class="aoi-meta">Loaded <b>${escapeHtml(filename)}</b> · searching CSG layers for overlap…</div>`;
+  aoiBody.innerHTML = `<div class="aoi-meta">Loaded <b>${escapeHtml(filename)}</b> · searching operational layers for overlap…</div>`;
 
-  setBusy(true, 'Querying 29 SG layers for overlap…');
+  setBusy(true, `Querying ${LAYER_DEFS.length} SG layers for overlap…`);
   const esriGeom = buildEsriGeometry(geojson);
 
   const settled = await Promise.allSettled(LAYER_DEFS.map(def =>
@@ -501,13 +1079,14 @@ async function loadAOI(geojson, filename){
   aoiResults = [];
   settled.forEach(s => {
     if(s.status === 'fulfilled' && s.value.fc.features && s.value.fc.features.length){
-      aoiResults.push({ layerDef: s.value.def, geojson: s.value.fc, checked: true });
+      // Default inclusion mirrors what's currently visible on the map — not every layer.
+      aoiResults.push({ layerDef: s.value.def, geojson: s.value.fc, checked: !!s.value.def.checked });
     }
   });
   aoiResults.sort((a,b) => b.geojson.features.length - a.geojson.features.length);
 
   aoiResultsGroup.clearLayers();
-  aoiResults.forEach(r => { r.mapLayer = buildAoiMapLayer(r.layerDef, r.geojson); r.mapLayer.addTo(aoiResultsGroup); });
+  aoiResults.forEach(r => { r.mapLayer = buildAoiMapLayer(r); if(r.checked) r.mapLayer.addTo(aoiResultsGroup); });
 
   renderAoiPanel(filename);
   setBusy(false);
@@ -563,16 +1142,26 @@ async function queryAOIForLayer(layerDef, esriGeometry){
   return { type:'FeatureCollection', features: all };
 }
 
-function buildAoiMapLayer(layerDef, fc){
-  const opts = { onEachFeature: (feature, layer) => layer.bindPopup(() => popupHtmlFor(feature.properties, layerDef.name), { maxHeight:280 }) };
-  if(layerDef.type === 'point'){
-    opts.pointToLayer = (g, latlng) => L.circleMarker(latlng, { radius:5, color:layerDef.color, weight:1.5, fillColor:layerDef.color, fillOpacity:0.9 });
-  } else if(layerDef.type === 'polyline'){
-    opts.style = () => ({ color:layerDef.color, weight:3, opacity:0.95 });
+function buildAoiMapLayer(r){
+  const layerDef = r.layerDef, fc = r.geojson;
+  // Same symbology as the live browse layers, just rendered a touch bolder so AOI results read clearly.
+  const opts = {
+    pane: CAT_PANE[layerDef.cat],
+    onEachFeature: (feature, layer) => {
+      layer.bindPopup(() => popupHtmlFor(feature.properties, layerDef.name), { maxHeight:280 });
+      layer.on('click', () => selectFeature(feature));
+    }
+  };
+  if(layerDef.type === 'polyline'){
+    opts.style = () => ({ color:layerDef.color, weight:layerDef.weight+1, opacity:0.95, dashArray:layerDef.dash||null });
   } else {
-    opts.style = () => ({ color:layerDef.color, weight:1.5, fillColor:layerDef.color, fillOpacity:0.28, opacity:0.95 });
+    opts.style = () => ({ color:layerDef.color, weight:layerDef.weight+0.5, opacity:0.95, fillColor:layerDef.color, fillOpacity:(layerDef.fillOpacity??0.05)+0.08, dashArray:layerDef.dash||null });
   }
-  return L.geoJSON(fc, opts);
+  const gj = L.geoJSON(fc, opts);
+  // Live-checked getter so toggling the AOI panel checkbox (or clearing the AOI) is
+  // reflected immediately without needing to re-register on every click.
+  LabelEngine.register({ ...layerDef, key:'aoi_'+layerDef.key, get checked(){ return r.checked; } }, gj);
+  return gj;
 }
 
 function getCheckedAoiResults(){ return aoiResults.filter(r => r.checked); }
@@ -593,10 +1182,11 @@ function renderAoiPanel(filename){
     return;
   }
 
+  const checkedCount = aoiResults.filter(r=>r.checked).length;
   const rows = aoiResults.map(r => `
     <div class="aoi-layer-row">
       <input type="checkbox" id="aoi-chk-${r.layerDef.id}" ${r.checked ? 'checked':''}/>
-      <span class="swatch" style="background:${r.layerDef.color}"></span>
+      <span class="swatch" style="border-color:${r.layerDef.color};background:${r.layerDef.color}22"></span>
       <label for="aoi-chk-${r.layerDef.id}">${escapeHtml(r.layerDef.name)}</label>
       <span class="cnt">${r.geojson.features.length}</span>
     </div>`).join('');
@@ -606,13 +1196,14 @@ function renderAoiPanel(filename){
     ${areaLine}
     <div id="aoi-layer-rows">${rows}</div>
     <div id="download-wrap">
-      <button id="btn-download">&#8681; Download Cadastral Data</button>
+      <button id="btn-download">&#8681; Download Cadastral Data (${checkedCount} layer${checkedCount===1?'':'s'})</button>
       <div id="download-menu">
         <button data-fmt="kml">KML <small>.kml</small></button>
         <button data-fmt="kmz">KMZ <small>.kmz (zipped)</small></button>
         <button data-fmt="shp">Shapefile <small>.zip of .shp/.dbf</small></button>
         <button data-fmt="gpkg">GeoPackage <small>.gpkg</small></button>
       </div>
+      <div id="dl-scope-note">Exports only the layers checked above — matching what was visible on the map when this area was loaded. Tick more layers to include them.</div>
     </div>`;
 
   document.getElementById('aoi-clear').addEventListener('click', clearAOI);
@@ -620,6 +1211,8 @@ function renderAoiPanel(filename){
     document.getElementById(`aoi-chk-${r.layerDef.id}`).addEventListener('change', e => {
       r.checked = e.target.checked;
       if(r.checked) r.mapLayer.addTo(aoiResultsGroup); else aoiResultsGroup.removeLayer(r.mapLayer);
+      LabelEngine.scheduleRefresh();
+      renderAoiPanel(filename);
     });
   });
 
@@ -639,6 +1232,72 @@ function renderAoiPanel(filename){
     } catch(err){ console.error(err); alert('Export failed: ' + err.message); }
     finally { setBusy(false); }
   }));
+}
+
+/* ===================== SHARED: carrying the app's symbology into exports =====================
+   Every export format below (KML, Shapefile, GeoPackage) embeds the same
+   colours/weights/dash patterns used on the map, so the styling isn't lost
+   the moment the data leaves the app. */
+function colorToRgbArray(hex){
+  hex = String(hex).replace('#','');
+  return [parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16)];
+}
+function kmlColor(hex, alphaFraction){
+  // KML colour order is aabbggrr (alpha first, then blue/green/red — the reverse of CSS).
+  const [r,g,b] = colorToRgbArray(hex);
+  const a = Math.round((alphaFraction ?? 1) * 255);
+  const h = n => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2,'0');
+  return h(a) + h(b) + h(g) + h(r);
+}
+function kmlStyleBlockFor(layerDef, styleId){
+  const isLine = layerDef.type === 'polyline';
+  const lineWidth = isLine ? layerDef.weight + 1 : layerDef.weight + 0.5;
+  const lineColor = kmlColor(layerDef.color, 1);
+  const fillAlpha = isLine ? 0 : (layerDef.fillOpacity ?? 0.05) + 0.08;
+  const fillTag = isLine ? '' : `<PolyStyle><color>${kmlColor(layerDef.color, fillAlpha)}</color><fill>${fillAlpha > 0 ? 1 : 0}</fill><outline>1</outline></PolyStyle>`;
+  return `<Style id="${styleId}"><LineStyle><color>${lineColor}</color><width>${lineWidth}</width></LineStyle>${fillTag}</Style>`;
+}
+// A minimal, broadly-compatible QGIS style definition (.qml) for a single layer's symbology —
+// used both as a Shapefile sidecar and embedded in the GeoPackage's layer_styles table.
+function buildQml(layerDef){
+  const [r,g,b] = colorToRgbArray(layerDef.color);
+  const isLine = layerDef.type === 'polyline';
+  const penStyle = layerDef.dash ? 'dash' : 'solid';
+  const outlineWidthMm = ((layerDef.weight || 1) * 0.28).toFixed(2); // rough px->mm so it still reads thin on screen
+  const fillAlpha255 = Math.round((((layerDef.fillOpacity ?? 0.05)) + 0.08) * 255);
+  const symbolXml = isLine
+    ? `<symbol type="line" alpha="1" clip_to_extent="1" name="0" force_rhr="0">
+        <layer pass="0" class="SimpleLine" locked="0" enabled="1">
+          <Option type="Map">
+            <Option type="QString" name="line_color" value="${r},${g},${b},255"/>
+            <Option type="QString" name="line_style" value="${penStyle}"/>
+            <Option type="QString" name="line_width" value="${outlineWidthMm}"/>
+            <Option type="QString" name="line_width_unit" value="MM"/>
+            <Option type="QString" name="capstyle" value="square"/>
+          </Option>
+        </layer>
+      </symbol>`
+    : `<symbol type="fill" alpha="1" clip_to_extent="1" name="0" force_rhr="0">
+        <layer pass="0" class="SimpleFill" locked="0" enabled="1">
+          <Option type="Map">
+            <Option type="QString" name="color" value="${r},${g},${b},${fillAlpha255}"/>
+            <Option type="QString" name="outline_color" value="${r},${g},${b},255"/>
+            <Option type="QString" name="outline_style" value="${penStyle}"/>
+            <Option type="QString" name="outline_width" value="${outlineWidthMm}"/>
+            <Option type="QString" name="outline_width_unit" value="MM"/>
+            <Option type="QString" name="style" value="solid"/>
+          </Option>
+        </layer>
+      </symbol>`;
+  return `<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
+<qgis version="3.28" styleCategories="Symbology">
+  <renderer-v2 type="singleSymbol" forceraster="0" symbollevels="0" referencescale="-1" enableorderby="0">
+    <symbols>
+      ${symbolXml}
+    </symbols>
+  </renderer-v2>
+  <labeling-enabled>0</labeling-enabled>
+</qgis>`;
 }
 
 /* ===================== EXPORT: KML / KMZ ===================== */
@@ -667,16 +1326,18 @@ function propsToExtendedData(props){
   if(!keys.length) return '';
   return `<ExtendedData>${keys.map(k=>`<Data name="${xmlEsc(k)}"><value>${xmlEsc(props[k])}</value></Data>`).join('')}</ExtendedData>`;
 }
-function featureToPlacemark(feature, layerName, idx){
+function featureToPlacemark(feature, layerName, idx, styleId){
   const props = feature.properties || {};
-  const nameVal = props.NAME || props.Name || props.name || props.ERF_NO || props.PORTION_NO || `${layerName} ${idx+1}`;
-  return `<Placemark><name>${xmlEsc(nameVal)}</name>${propsToExtendedData(props)}${geometryToKML(feature.geometry)}</Placemark>`;
+  const nameVal = props.TAG_VALUE || props.PROVINCE || props.NAME || props.Name || props.name || props.PARCEL_NO || `${layerName} ${idx+1}`;
+  const styleRef = styleId ? `<styleUrl>#${styleId}</styleUrl>` : '';
+  return `<Placemark><name>${xmlEsc(nameVal)}</name>${styleRef}${propsToExtendedData(props)}${geometryToKML(feature.geometry)}</Placemark>`;
 }
 function buildKMLDocument(){
-  const aoiFolder = aoiGeojson ? `<Folder><name>Area of Interest</name><Style><LineStyle><color>ff3f9ad6</color><width>2</width></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>${aoiGeojson.features.map((f,i)=>featureToPlacemark(f,'AOI',i)).join('')}</Folder>` : '';
-  const layerFolders = getCheckedAoiResults().map(r =>
-    `<Folder><name>${xmlEsc(r.layerDef.name)}</name>${r.geojson.features.map((f,i)=>featureToPlacemark(f,r.layerDef.name,i)).join('')}</Folder>`
-  ).join('');
+  const aoiFolder = aoiGeojson ? `<Folder><name>Area of Interest</name><Style><LineStyle><color>ff1a23e2</color><width>4</width></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>${aoiGeojson.features.map((f,i)=>featureToPlacemark(f,'AOI',i)).join('')}</Folder>` : '';
+  const layerFolders = getCheckedAoiResults().map(r => {
+    const styleId = 'style_' + sanitizeFilename(r.layerDef.key);
+    return `<Folder><name>${xmlEsc(r.layerDef.name)}</name>${kmlStyleBlockFor(r.layerDef, styleId)}${r.geojson.features.map((f,i)=>featureToPlacemark(f,r.layerDef.name,i,styleId)).join('')}</Folder>`;
+  }).join('');
   return `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>CSG Cadastral Export</name>${aoiFolder}${layerFolders}</Document></kml>`;
 }
 async function exportKML(asKmz){
@@ -847,6 +1508,7 @@ async function exportShapefile(){
     zip.file(`${base}.shx`, shx);
     zip.file(`${base}.dbf`, dbf);
     zip.file(`${base}.prj`, WGS84_WKT_ESRI);
+    zip.file(`${base}.qml`, buildQml(r.layerDef)); // QGIS "Load Style" sidecar — carries the app's colours/weights over
   });
   if(!any){ setBusy(false); alert('No features to export.'); return; }
   const blob = await zip.generateAsync({ type:'blob' });
@@ -932,6 +1594,14 @@ async function exportGeoPackage(){
     db.run(`CREATE TABLE gpkg_contents (table_name TEXT NOT NULL PRIMARY KEY, data_type TEXT NOT NULL, identifier TEXT UNIQUE, description TEXT DEFAULT '', last_change DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE, srs_id INTEGER);`);
     db.run(`CREATE TABLE gpkg_geometry_columns (table_name TEXT NOT NULL, column_name TEXT NOT NULL, geometry_type_name TEXT NOT NULL, srs_id INTEGER NOT NULL, z TINYINT NOT NULL, m TINYINT NOT NULL, PRIMARY KEY (table_name, column_name));`);
 
+    // QGIS-standard style table: when this .gpkg is opened in QGIS, each layer
+    // picks up its saved style (colour/weight/dash) automatically from here —
+    // this is what actually carries symbology across, not a .gpkg.aux.xml
+    // sidecar (GDAL's aux.xml/PAM mechanism is for raster stats, not vector
+    // renderers, so it wouldn't be read back by QGIS or ArcGIS as a style).
+    db.run(`CREATE TABLE layer_styles (id INTEGER PRIMARY KEY AUTOINCREMENT, f_table_catalog TEXT, f_table_schema TEXT, f_table_name TEXT, f_geometry_column TEXT, styleName TEXT, styleQML TEXT, styleSLD TEXT, useAsDefault BOOLEAN, description TEXT, owner TEXT, ui TEXT, update_time DATETIME);`);
+    db.run(`INSERT INTO gpkg_contents (table_name, data_type, identifier, description) VALUES ('layer_styles', 'attributes', 'layer_styles', 'QGIS layer style definitions')`);
+
     checked.forEach(r => {
       const table = sanitizeSqlIdent(r.layerDef.name);
       const fieldDefs = buildSqlFieldDefs(r.geojson.features);
@@ -960,6 +1630,9 @@ async function exportGeoPackage(){
       db.run(`INSERT INTO gpkg_contents (table_name,data_type,identifier,description,min_x,min_y,max_x,max_y,srs_id) VALUES (?, 'features', ?, ?, ?, ?, ?, ?, 4326)`,
         [table, r.layerDef.name, r.layerDef.name, isFinite(minx)?minx:null, isFinite(miny)?miny:null, isFinite(maxx)?maxx:null, isFinite(maxy)?maxy:null]);
       db.run(`INSERT INTO gpkg_geometry_columns (table_name, column_name, geometry_type_name, srs_id, z, m) VALUES (?, 'geom', 'GEOMETRY', 4326, 0, 0)`, [table]);
+
+      db.run(`INSERT INTO layer_styles (f_table_catalog, f_table_schema, f_table_name, f_geometry_column, styleName, styleQML, styleSLD, useAsDefault, description, owner, ui, update_time) VALUES ('', '', ?, 'geom', ?, ?, NULL, 1, ?, '', NULL, ?)`,
+        [table, r.layerDef.name + ' (5D Geo style)', buildQml(r.layerDef), 'Symbology exported from the 5D Geo CSG Cadastral Viewer', new Date().toISOString()]);
     });
 
     const bytes = db.export();
