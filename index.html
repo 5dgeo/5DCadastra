@@ -23,6 +23,9 @@
     --shadow-1:0 1px 3px rgba(15,39,64,.06);
     --shadow-2:0 10px 28px rgba(15,39,64,.16);
     --radius:8px;
+    --glass:rgba(255,255,255,.74);
+    --glass-border:rgba(255,255,255,.6);
+    --glass-shadow:0 24px 60px -14px rgba(15,39,64,.4), 0 3px 12px rgba(15,39,64,.12);
   }
   :root[data-theme="dark"]{
     --navy:#0a1826; --navy-2:#0f2740; --navy-3:#1f4a73;
@@ -30,146 +33,176 @@
     --text:#e7ecf1; --text-dim:#8b98a6;
     --shadow-1:0 1px 3px rgba(0,0,0,.35);
     --shadow-2:0 10px 30px rgba(0,0,0,.55);
+    --glass:rgba(20,27,34,.68);
+    --glass-border:rgba(255,255,255,.09);
+    --glass-shadow:0 24px 60px -14px rgba(0,0,0,.6), 0 3px 12px rgba(0,0,0,.3);
   }
   *{box-sizing:border-box;}
   html,body{ margin:0; padding:0; height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); }
   button,input{ font-family:inherit; }
-  #app{ display:flex; height:100vh; width:100vw; position:relative; overflow:hidden; }
+  #app{ height:100vh; width:100vw; position:relative; overflow:hidden; }
 
-  /* ---------- sidebar ---------- */
-  #sidebar{
-    width:368px; min-width:368px; background:var(--panel); border-right:1px solid var(--border);
-    display:flex; flex-direction:column; overflow:hidden; box-shadow:2px 0 10px rgba(15,39,64,.05);
-    transition:transform .25s ease, background .2s ease, border-color .2s ease;
-    position:relative; z-index:500;
+  /* ---------- bottom-centre dock bar (icons only) — floats above the map, macOS-dock style ---------- */
+  #dock-wrap{
+    position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:500;
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+    max-width:calc(100vw - 32px);
   }
-  #brand{ background:linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%); padding:14px 16px; color:#fff; display:flex; align-items:center; gap:10px; flex:none; }
-  #brand .mark{ width:34px; height:34px; border-radius:7px; flex:none; background:var(--gold); color:var(--navy); font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; letter-spacing:.5px; }
-  #brand .word{ line-height:1.25; flex:1; }
-  #brand .word b{ display:block; font-size:14px; letter-spacing:.4px; }
-  #brand .word span{ display:block; font-size:10px; color:#cfe0ee; letter-spacing:.6px; text-transform:uppercase; }
-  #theme-toggle{ flex:none; width:30px; height:30px; border-radius:7px; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; }
-  #theme-toggle:hover{ background:rgba(255,255,255,.18); }
 
-  #tagline{ padding:9px 16px; font-size:11.5px; color:var(--text-dim); line-height:1.5; border-bottom:1px solid var(--border); flex:none; }
+  /* ---------- popup panels (Layers/AOI + Legend) — compact, curvy corners, anchored top-left ---------- */
+  #dock-panel, #legend-panel{
+    display:none; flex-direction:column; overflow:hidden;
+    position:absolute; top:14px; left:14px; z-index:600;
+    background:var(--glass); border:1px solid var(--glass-border); box-shadow:var(--glass-shadow);
+    backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
+    border-radius:18px;
+    transition:background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  #dock-panel.show, #legend-panel.show{ display:flex; }
+  #dock-panel{ width:300px; max-width:calc(100vw - 28px); max-height:min(64vh, 540px); }
+  #brand{ background:linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%); padding:10px 12px; color:#fff; display:flex; align-items:center; gap:8px; flex:none; }
+  #brand .mark{ width:26px; height:26px; border-radius:6px; flex:none; background:var(--gold); color:var(--navy); font-weight:800; font-size:11.5px; display:flex; align-items:center; justify-content:center; letter-spacing:.5px; }
+  #brand .word{ line-height:1.2; flex:1; }
+  #brand .word b{ display:block; font-size:12.5px; letter-spacing:.3px; }
+  #brand .word span{ display:block; font-size:9px; color:#cfe0ee; letter-spacing:.5px; text-transform:uppercase; }
+  .brand-icon-btn{ flex:none; width:26px; height:26px; border-radius:6px; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; }
+  .brand-icon-btn:hover{ background:rgba(255,255,255,.18); }
+
+  /* ---------- the dock bar itself: always visible, horizontal, bottom-centred ---------- */
+  #dock-bar{
+    display:flex; align-items:center; gap:9px; flex:none;
+    padding:10px 12px; border-radius:30px;
+    background:var(--glass); border:1px solid var(--glass-border); box-shadow:var(--glass-shadow);
+    backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
+  }
+  .dock-btn{
+    width:42px; height:42px; border-radius:50%; border:none; cursor:pointer; flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:16px;
+    background:var(--panel-2); color:var(--navy);
+    transition:transform .15s cubic-bezier(.34,1.56,.64,1), background .15s ease, color .15s ease;
+  }
+  .dock-btn:hover{ transform:scale(1.14) translateY(-3px); background:var(--gold); color:#2a1d08; }
+  .dock-btn.active{ background:var(--gold); color:#2a1d08; }
+  .dock-btn b{ font-size:12px; letter-spacing:.3px; }
+  .dock-btn.mark-btn{ background:var(--gold); color:var(--navy); font-weight:800; }
+  :root[data-theme="dark"] .dock-btn{ color:#dce8f2; }
+
+  #tagline{ padding:7px 12px; font-size:10.5px; color:var(--text-dim); line-height:1.4; border-bottom:1px solid var(--border); flex:none; }
 
   #scroll-area{ flex:1; overflow-y:auto; }
-  #scroll-area::-webkit-scrollbar{ width:7px; }
+  #scroll-area::-webkit-scrollbar{ width:6px; }
   #scroll-area::-webkit-scrollbar-thumb{ background:var(--border); border-radius:4px; }
 
   /* AOI panel */
   #aoi-panel{ border-bottom:1px solid var(--border); }
-  #aoi-panel .sec-head{ padding:11px 16px; display:flex; align-items:center; gap:8px; background:var(--panel-2); border-bottom:1px solid var(--border); }
-  #aoi-panel .sec-head .ico{ color:var(--gold-dark); font-size:14px; }
-  #aoi-panel .sec-head h2{ margin:0; font-size:12px; letter-spacing:.4px; color:var(--navy); text-transform:uppercase; flex:1; }
+  #aoi-panel .sec-head{ padding:8px 12px; display:flex; align-items:center; gap:7px; background:var(--panel-2); border-bottom:1px solid var(--border); }
+  #aoi-panel .sec-head .ico{ color:var(--gold-dark); font-size:12.5px; }
+  #aoi-panel .sec-head h2{ margin:0; font-size:11px; letter-spacing:.3px; color:var(--navy); text-transform:uppercase; flex:1; }
   #aoi-panel .sec-head .icon-btn.active{ background:var(--gold); color:#2a1d08; border-color:var(--gold-dark); }
   :root[data-theme="dark"] #aoi-panel .sec-head h2{ color:#dce8f2; }
-  #aoi-body{ padding:12px 16px; font-size:12px; color:var(--text-dim); line-height:1.6; }
-  #aoi-body .dz-hint{ border:1.5px dashed var(--border); border-radius:8px; padding:14px; text-align:center; color:var(--text-dim); font-size:11.5px; line-height:1.6; }
+  #aoi-body{ padding:9px 12px; font-size:11px; color:var(--text-dim); line-height:1.5; }
+  #aoi-body .dz-hint{ border:1.5px dashed var(--border); border-radius:12px; padding:11px; text-align:center; color:var(--text-dim); font-size:10.5px; line-height:1.5; }
   #aoi-body .dz-hint b{ color:var(--navy); }
   :root[data-theme="dark"] #aoi-body .dz-hint b{ color:#dce8f2; }
-  .aoi-meta{ font-size:11.5px; color:var(--text-dim); margin-bottom:8px; }
+  .aoi-meta{ font-size:10.5px; color:var(--text-dim); margin-bottom:7px; }
   .aoi-meta b{ color:var(--text); }
-  #aoi-clear{ font-size:11px; color:var(--err); background:none; border:none; cursor:pointer; padding:0; text-decoration:underline; margin-left:6px; }
-  .aoi-layer-row{ display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px; }
-  .aoi-layer-row .swatch{ width:10px; height:10px; border-radius:2px; flex:none; border:1.5px solid rgba(0,0,0,.2); }
+  #aoi-clear{ font-size:10px; color:var(--err); background:none; border:none; cursor:pointer; padding:0; text-decoration:underline; margin-left:6px; }
+  .aoi-layers-toggle{ display:flex; align-items:center; gap:6px; padding:5px 0; font-size:10.5px; color:var(--text-dim); cursor:pointer; user-select:none; }
+  .aoi-layers-toggle:hover{ color:var(--navy-3); }
+  .aoi-layers-toggle .chev{ font-size:9px; flex:none; transition:transform .18s ease; }
+  .aoi-layers-toggle.expanded .chev{ transform:rotate(90deg); }
+  .aoi-layer-row{ display:flex; align-items:center; gap:7px; padding:4px 0; font-size:11px; }
+  .aoi-layer-row .swatch{ width:9px; height:9px; border-radius:2px; flex:none; border:1.5px solid rgba(0,0,0,.2); }
   .aoi-layer-row label{ flex:1; cursor:pointer; color:var(--text); }
-  .aoi-layer-row .cnt{ color:var(--text-dim); font-size:10.5px; font-variant-numeric:tabular-nums; }
+  .aoi-layer-row .cnt{ color:var(--text-dim); font-size:10px; font-variant-numeric:tabular-nums; }
   .aoi-layer-row input{ accent-color:var(--gold-dark); cursor:pointer; }
 
-  #download-wrap{ position:relative; margin-top:10px; }
-  #btn-download{ width:100%; padding:10px 12px; border-radius:7px; border:none; background:var(--gold); color:#2a1d08; font-weight:700; font-size:12.5px; cursor:pointer; letter-spacing:.2px; display:flex; align-items:center; justify-content:center; gap:6px; }
+  #download-wrap{ position:relative; margin-top:8px; }
+  #btn-download{ width:100%; padding:8px 10px; border-radius:12px; border:none; background:var(--gold); color:#2a1d08; font-weight:700; font-size:11.5px; cursor:pointer; letter-spacing:.2px; display:flex; align-items:center; justify-content:center; gap:6px; }
   #btn-download:hover{ background:var(--gold-dark); color:#fff; }
   #btn-download:disabled{ background:#e5e2da; color:#9a9a9a; cursor:not-allowed; }
-  #download-menu{ display:none; position:absolute; left:0; right:0; top:calc(100% + 6px); background:var(--panel); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow-2); overflow:hidden; z-index:1000; }
+  #download-menu{ display:none; position:absolute; left:0; right:0; top:calc(100% + 6px); background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-2); overflow:hidden; z-index:1000; }
   #download-menu.open{ display:block; }
-  #download-menu button{ width:100%; text-align:left; padding:10px 14px; border:none; background:var(--panel); font-size:12px; color:var(--text); cursor:pointer; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; }
+  #download-menu button{ width:100%; text-align:left; padding:9px 12px; border:none; background:var(--panel); font-size:11px; color:var(--text); cursor:pointer; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; }
   #download-menu button:last-child{ border-bottom:none; }
   #download-menu button:hover{ background:var(--panel-2); }
   #download-menu button small{ color:var(--text-dim); font-weight:400; }
-  #dl-scope-note{ font-size:10.5px; color:var(--text-dim); margin-top:6px; line-height:1.5; }
+  #dl-scope-note{ font-size:9.5px; color:var(--text-dim); margin-top:6px; line-height:1.4; }
 
   /* Browse layers panel */
-  #browse-panel .sec-head{ padding:11px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); }
-  #browse-panel .sec-head h2{ margin:0; font-size:12px; letter-spacing:.4px; color:var(--navy); text-transform:uppercase; flex:1; }
+  #browse-panel .sec-head{ padding:8px 12px; display:flex; align-items:center; gap:7px; border-bottom:1px solid var(--border); }
+  #browse-panel .sec-head h2{ margin:0; font-size:11px; letter-spacing:.3px; color:var(--navy); text-transform:uppercase; flex:1; }
   :root[data-theme="dark"] #browse-panel .sec-head h2{ color:#dce8f2; }
 
-  #search-box{ padding:9px 16px; border-bottom:1px solid var(--border); display:flex; gap:6px; }
-  #search-box input{ flex:1; width:100%; padding:7px 10px; border-radius:6px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); font-size:12.5px; outline:none; }
+  #search-box{ padding:7px 12px; border-bottom:1px solid var(--border); display:flex; gap:6px; }
+  #search-box input{ flex:1; width:100%; padding:6px 9px; border-radius:10px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); font-size:11.5px; outline:none; }
   #search-box input:focus{ border-color:var(--navy-3); box-shadow:0 0 0 3px var(--border); }
-  .icon-btn{ flex:none; width:30px; height:30px; border-radius:6px; border:1px solid var(--border); background:var(--panel-2); color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .icon-btn{ flex:none; width:26px; height:26px; border-radius:8px; border:1px solid var(--border); background:var(--panel-2); color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; }
   .icon-btn:hover{ border-color:var(--navy-3); color:var(--navy-3); }
 
-  #layer-tree{ padding:6px 0 2px; }
+  #layer-tree{ padding:5px 0 2px; }
   .cat{ border-bottom:1px solid var(--border); }
   .cat:last-child{ border-bottom:none; }
-  .cat-head{ display:flex; align-items:center; gap:8px; padding:9px 16px; cursor:pointer; user-select:none; }
+  .cat-head{ display:flex; align-items:center; gap:7px; padding:7px 12px; cursor:pointer; user-select:none; }
   .cat-head:hover{ background:var(--panel-2); }
-  .cat-head .chev{ color:var(--text-dim); font-size:10px; transition:transform .18s ease; flex:none; width:10px; }
+  .cat-head .chev{ color:var(--text-dim); font-size:9px; transition:transform .18s ease; flex:none; width:10px; }
   .cat.expanded .cat-head .chev{ transform:rotate(90deg); }
-  .cat-head .cat-name{ flex:1; font-size:12px; font-weight:650; color:var(--text); letter-spacing:.2px; }
-  .cat-head .cat-badge{ font-size:10px; color:var(--text-dim); background:var(--panel-2); border:1px solid var(--border); border-radius:20px; padding:1px 7px; font-variant-numeric:tabular-nums; }
+  .cat-head .cat-name{ flex:1; font-size:11px; font-weight:650; color:var(--text); letter-spacing:.2px; }
+  .cat-head .cat-badge{ font-size:9px; color:var(--text-dim); background:var(--panel-2); border:1px solid var(--border); border-radius:20px; padding:1px 6px; font-variant-numeric:tabular-nums; }
   .cat-body-wrap{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .22s ease; }
   .cat.expanded .cat-body-wrap{ grid-template-rows:1fr; }
   .cat-body-inner{ overflow:hidden; }
 
-  .layer-row{ display:flex; align-items:center; gap:9px; padding:6px 16px 6px 30px; font-size:12px; cursor:pointer; border-left:3px solid transparent; position:relative; }
+  .layer-row{ display:flex; align-items:center; gap:8px; padding:5px 12px 5px 26px; font-size:11px; cursor:pointer; border-left:3px solid transparent; position:relative; }
   .layer-row:hover{ background:var(--panel-2); }
   .layer-row.active{ border-left-color:var(--gold-dark); background:var(--panel-2); }
   .layer-row.active label{ font-weight:700; color:var(--navy); }
   :root[data-theme="dark"] .layer-row.active label{ color:#f0d9a8; }
   .layer-row.below-scale{ opacity:.55; }
   .layer-row input[type=checkbox]{ accent-color:var(--navy-3); cursor:pointer; flex:none; }
-  .swatch{ width:10px; height:10px; border-radius:2px; flex:none; border:1.5px solid rgba(0,0,0,.2); }
+  .swatch{ width:9px; height:9px; border-radius:2px; flex:none; border:1.5px solid rgba(0,0,0,.2); }
   .layer-row label{ cursor:pointer; user-select:none; flex:1; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .hint{ font-size:9px; color:var(--warn); white-space:nowrap; flex:none; }
-  .layer-row .count{ color:var(--text-dim); font-size:10px; flex:none; font-variant-numeric:tabular-nums; background:var(--panel-2); border-radius:10px; padding:1px 6px; min-width:16px; text-align:center; }
+  .layer-row .count{ color:var(--text-dim); font-size:9.5px; flex:none; font-variant-numeric:tabular-nums; background:var(--panel-2); border-radius:10px; padding:1px 6px; min-width:16px; text-align:center; }
 
-  .layer-detail{ padding:8px 16px 12px 30px; background:var(--panel-2); border-left:3px solid var(--gold-dark); }
-  .layer-detail .row{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
-  .layer-detail label{ font-size:10.5px; color:var(--text-dim); width:52px; flex:none; }
+  .layer-detail{ padding:7px 12px 10px 26px; background:var(--panel-2); border-left:3px solid var(--gold-dark); }
+  .layer-detail .row{ display:flex; align-items:center; gap:7px; margin-bottom:5px; }
+  .layer-detail label{ font-size:10px; color:var(--text-dim); width:48px; flex:none; }
   .layer-detail input[type=range]{ flex:1; accent-color:var(--gold-dark); }
-  .layer-detail .opv{ font-size:10.5px; color:var(--text-dim); width:30px; text-align:right; flex:none; font-variant-numeric:tabular-nums; }
+  .layer-detail .opv{ font-size:10px; color:var(--text-dim); width:28px; text-align:right; flex:none; font-variant-numeric:tabular-nums; }
   .layer-detail .actions{ display:flex; gap:6px; margin-top:4px; }
-  .layer-detail .actions button{ font-size:10.5px; padding:5px 8px; border-radius:5px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; }
+  .layer-detail .actions button{ font-size:10px; padding:4px 7px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; }
   .layer-detail .actions button:hover{ border-color:var(--navy-3); color:var(--navy-3); }
 
-  #footer{ padding:9px 16px; border-top:1px solid var(--border); display:flex; gap:8px; flex:none; }
-  #footer button{ flex:1; padding:7px 8px; font-size:11px; border-radius:6px; border:1px solid var(--border); background:var(--panel-2); color:var(--navy); cursor:pointer; }
+  #footer{ padding:7px 12px; border-top:1px solid var(--border); display:flex; gap:6px; flex:none; }
+  #footer button{ flex:1; padding:6px 6px; font-size:10px; border-radius:10px; border:1px solid var(--border); background:var(--panel-2); color:var(--navy); cursor:pointer; }
   :root[data-theme="dark"] #footer button{ color:#dce8f2; }
   #footer button:hover{ border-color:var(--navy-3); }
 
-  #status{ padding:7px 16px; font-size:10.5px; color:var(--teal); border-top:1px solid var(--border); display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:var(--panel-2); flex:none; position:relative; }
+  #status{ padding:6px 12px; font-size:9.5px; color:var(--teal); border-top:1px solid var(--border); display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:var(--panel-2); flex:none; position:relative; }
   .dot{ width:7px; height:7px; border-radius:50%; background:var(--teal); flex:none; }
   .dot.loading{ background:var(--gold); animation:pulse 1s infinite; }
   .dot.err{ background:var(--err); }
   #coordval{ margin-left:auto; color:var(--text-dim); font-variant-numeric:tabular-nums; }
   #zoomval{ color:var(--text-dim); font-variant-numeric:tabular-nums; }
-  #shortcuts-btn{ flex:none; width:16px; height:16px; border-radius:50%; border:1px solid var(--border); background:var(--panel); color:var(--text-dim); font-size:9.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  #shortcuts-btn{ flex:none; width:15px; height:15px; border-radius:50%; border:1px solid var(--border); background:var(--panel); color:var(--text-dim); font-size:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
   @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.3} }
 
-  #shortcuts-pop{ display:none; position:absolute; bottom:calc(100% + 8px); right:8px; background:var(--panel); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow-2); padding:12px 14px; font-size:11px; color:var(--text); width:220px; z-index:1400; }
+  #shortcuts-pop{ display:none; position:absolute; bottom:calc(100% + 8px); right:8px; background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-2); padding:11px 13px; font-size:11px; color:var(--text); width:210px; z-index:1400; }
   #shortcuts-pop.open{ display:block; }
-  #shortcuts-pop h3{ margin:0 0 8px; font-size:11.5px; color:var(--navy); }
+  #shortcuts-pop h3{ margin:0 0 8px; font-size:11px; color:var(--navy); }
   :root[data-theme="dark"] #shortcuts-pop h3{ color:#dce8f2; }
   #shortcuts-pop .sk-row{ display:flex; justify-content:space-between; padding:3px 0; color:var(--text-dim); }
-  #shortcuts-pop kbd{ background:var(--panel-2); border:1px solid var(--border); border-radius:4px; padding:1px 6px; font-size:10.5px; color:var(--text); }
-
-  /* sidebar toggle (responsive) */
-  #sidebar-toggle{ display:none; position:absolute; top:12px; left:12px; z-index:800; width:38px; height:38px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--navy); box-shadow:var(--shadow-1); cursor:pointer; align-items:center; justify-content:center; font-size:16px; }
-  #sidebar-scrim{ display:none; }
+  #shortcuts-pop kbd{ background:var(--panel-2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; font-size:10px; color:var(--text); }
 
   @media (max-width: 880px){
-    #sidebar{ position:fixed; left:0; top:0; bottom:0; transform:translateX(-100%); box-shadow:var(--shadow-2); width:88vw; min-width:0; max-width:380px; }
-    #sidebar.open{ transform:translateX(0); }
-    #sidebar-toggle{ display:flex; }
-    #sidebar-scrim{ display:none; position:absolute; inset:0; background:rgba(10,20,30,.4); z-index:490; }
-    #sidebar-scrim.show{ display:block; }
-    #map-legend{ display:none; }
+    #dock-panel{ width:calc(100vw - 28px); }
+    #dock-panel, #legend-panel{ top:10px; left:10px; }
+    .dock-btn{ width:38px; height:38px; font-size:14px; }
   }
 
   /* ---------- map + overlays ---------- */
-  #map-wrap{ position:relative; flex:1; height:100%; }
+  #map-wrap{ position:absolute; inset:0; }
   #map{ width:100%; height:100%; background:#dfe6ec; }
   /* Leaflet's own stylesheet sets "pointer-events:auto" directly on every
      .leaflet-interactive path (that's how popups/clicks work at all), which
@@ -185,57 +218,104 @@
   #drop-overlay .card b{ display:block; font-size:16px; margin-bottom:6px; color:var(--gold); }
   #drop-overlay .card span{ font-size:12.5px; color:#dbe6ee; }
 
-  #busy-toast{ position:absolute; top:16px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:9px 16px; border-radius:8px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); z-index:950; display:none; align-items:center; gap:8px; }
+  #busy-toast{ position:absolute; top:70px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:9px 16px; border-radius:8px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); z-index:950; display:none; align-items:center; gap:8px; }
   #busy-toast.show{ display:flex; }
   #busy-toast .spin{ width:12px; height:12px; border-radius:50%; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; animation:spin .8s linear infinite; }
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
-  #hint-toast{ position:absolute; top:16px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:8px 10px 8px 16px; border-radius:8px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); z-index:960; display:none; align-items:center; gap:10px; }
+  #hint-toast{ position:absolute; top:70px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:8px 10px 8px 16px; border-radius:8px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); z-index:960; display:none; align-items:center; gap:10px; }
   #hint-toast.show{ display:flex; }
   #hint-toast button{ font-size:11px; padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#fff; cursor:pointer; }
   #hint-toast button:hover{ background:rgba(255,255,255,.2); }
 
-  .feat-label{ position:relative; left:0; top:0; white-space:nowrap; font-weight:600; font-family:Arial, sans-serif; text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff, 0 0 3px #fff; pointer-events:none; }
-  :root[data-theme="dark"] .feat-label{ text-shadow:-1px -1px 0 #10161d,1px -1px 0 #10161d,-1px 1px 0 #10161d,1px 1px 0 #10161d, 0 0 3px #10161d; }
+  /* ---------- top-centre geolocation search ---------- */
+  #geo-search{
+    position:absolute; top:14px; left:50%; transform:translateX(-50%); z-index:700;
+    width:260px; max-width:calc(100vw - 28px);
+    background:var(--glass); border:1px solid var(--glass-border); box-shadow:var(--glass-shadow);
+    backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
+    border-radius:18px; display:flex; align-items:center; gap:6px; padding:7px 12px;
+    transition:border-color .15s ease, box-shadow .15s ease, width .15s ease;
+  }
+  #geo-search.active{ border-color:var(--gold-dark); width:320px; }
+  #geo-search .ico{ flex:none; color:var(--text-dim); font-size:11.5px; }
+  #geo-search input{ flex:1; width:100%; min-width:0; border:none; outline:none; background:transparent; color:var(--text); font-size:11.5px; }
+  #geo-search input::placeholder{ color:var(--text-dim); }
+  #geo-search .clear-btn{ display:none; flex:none; border:none; background:none; color:var(--text-dim); cursor:pointer; font-size:11px; padding:0 2px; }
+  #geo-search.has-value .clear-btn{ display:block; }
+  #geo-suggestions{
+    display:none; position:absolute; top:calc(100% + 7px); left:0; right:0;
+    background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-2);
+    overflow:hidden; max-height:260px; overflow-y:auto; z-index:701;
+  }
+  #geo-search.active #geo-suggestions{ display:block; }
+  .geo-suggestion{ padding:8px 12px; font-size:11px; color:var(--text); cursor:pointer; border-bottom:1px solid var(--border); }
+  .geo-suggestion:last-child{ border-bottom:none; }
+  .geo-suggestion:hover{ background:var(--panel-2); }
+  .geo-suggestion.empty, .geo-suggestion.err{ cursor:default; color:var(--text-dim); }
+  .geo-suggestion.err{ color:var(--err); }
 
-  .leaflet-popup-content-wrapper{ background:var(--panel); color:var(--text); border-radius:8px; border:1px solid var(--border); }
+  @media (max-width: 880px){
+    #geo-search, #geo-search.active{ width:calc(100vw - 28px); }
+  }
+
+  /* Buffer/halo is always black regardless of UI theme — it's for contrast
+     against the satellite basemap, not the dock chrome. */
+  .feat-label{ position:relative; left:0; top:0; white-space:nowrap; font-weight:600; font-family:Arial, sans-serif; text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000, 0 0 3px #000; pointer-events:none; }
+
+  .leaflet-popup-content-wrapper{ background:var(--panel); color:var(--text); border-radius:16px; border:1px solid var(--border); position:relative; }
   .leaflet-popup-tip{ background:var(--panel); }
-  .popup-title{ font-size:12.5px; font-weight:700; margin:0 0 6px; color:var(--navy); }
+  /* No horizontal scrollbar ever — long values wrap onto extra lines instead.
+     (Leaflet sets overflow-y:auto for the maxHeight option; per the CSS spec
+     that alone makes the "visible" x-axis compute to auto too, which is what
+     was producing the unwanted horizontal scrollbar — force it off here.) */
+  .leaflet-popup-content{ overflow-x:hidden !important; }
+  .popup-title{ font-size:12px; font-weight:700; margin:0; color:var(--navy); }
   :root[data-theme="dark"] .popup-title{ color:#f0d9a8; }
-  .popup-table{ border-collapse:collapse; font-size:11.5px; max-width:260px; }
-  .popup-table td{ padding:3px 8px 3px 0; vertical-align:top; border-bottom:1px solid var(--border); }
-  .popup-table td.k{ color:var(--text-dim); white-space:nowrap; }
-  .popup-empty{ font-size:11.5px; color:var(--text-dim); }
+  .popup-table{ border-collapse:collapse; table-layout:fixed; width:100%; font-size:11px; }
+  .popup-table td{ padding:3px 8px 3px 0; vertical-align:top; border-bottom:1px solid var(--border); word-break:break-word; overflow-wrap:break-word; }
+  .popup-table td.k{ color:var(--text-dim); width:38%; }
+  .popup-empty{ font-size:11px; color:var(--text-dim); }
+
+  /* Multi-layer popup shell: Prev/Next flank the sides so paging between
+     overlapping layers is obvious at a glance; the body scrolls vertically
+     only (mouse wheel / keyboard), with the scrollbar hidden but functional. */
+  .popup-shell{ position:relative; }
+  .popup-shell.has-nav{ padding:0 24px; }
+  .popup-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px; }
+  .pn-count{ flex:none; font-size:9.5px; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  .popup-body{ max-height:230px; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -ms-overflow-style:none; }
+  .popup-body::-webkit-scrollbar{ width:0; height:0; }
+  .pn-side{ position:absolute; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:50%; border:1px solid var(--border); background:var(--panel-2); color:var(--navy); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; line-height:1; z-index:5; box-shadow:0 2px 6px rgba(15,39,64,.18); }
+  .pn-side.pn-left{ left:0; }
+  .pn-side.pn-right{ right:0; }
+  .pn-side:hover:not(:disabled){ background:var(--gold); color:#2a1d08; border-color:var(--gold-dark); }
+  .pn-side:disabled{ opacity:.3; cursor:default; }
+  :root[data-theme="dark"] .pn-side{ color:#dce8f2; }
+
   .leaflet-control-attribution{ font-size:10px; }
-  .leaflet-control-layers{ border-radius:8px !important; box-shadow:var(--shadow-2) !important; }
+  .leaflet-control-layers{ border-radius:14px !important; box-shadow:var(--shadow-2) !important; }
   .leaflet-bar a{ color:var(--navy) !important; }
 
-  /* legend control */
-  #map-legend{ background:var(--panel); border-radius:8px; box-shadow:var(--shadow-2); font-size:11.5px; color:var(--text); min-width:170px; overflow:hidden; border:1px solid var(--border); }
-  #map-legend .lg-head{ padding:8px 10px; display:flex; align-items:center; gap:6px; cursor:pointer; background:var(--panel-2); border-bottom:1px solid var(--border); }
-  #map-legend .lg-head b{ flex:1; font-size:11px; letter-spacing:.3px; color:var(--navy); }
-  :root[data-theme="dark"] #map-legend .lg-head b{ color:#dce8f2; }
-  #map-legend .lg-head .chev{ font-size:10px; color:var(--text-dim); transition:transform .15s; }
-  #map-legend.collapsed .lg-head .chev{ transform:rotate(-90deg); }
-  #map-legend.collapsed .lg-body{ display:none; }
-  #map-legend .lg-body{ padding:6px 10px 9px; }
-  #map-legend .lg-row{ display:flex; align-items:center; gap:7px; padding:3px 0; }
-  #map-legend .lg-row .sw{ width:16px; height:9px; border-radius:2px; flex:none; }
-  #map-legend .lg-row .ln{ width:16px; height:0; border-top:2px dashed; flex:none; }
-  #map-legend .lg-empty{ color:var(--text-dim); font-size:10.5px; padding:2px 0; }
+  /* legend popover — compact, part of the bottom dock, anchored top-left with the other panel */
+  #legend-panel{ width:180px; padding:0; }
+  #legend-panel .lg-head{ padding:8px 10px; display:flex; align-items:center; gap:6px; background:var(--panel-2); border-bottom:1px solid var(--border); flex:none; }
+  #legend-panel .lg-head b{ flex:1; font-size:11px; letter-spacing:.3px; color:var(--navy); text-transform:uppercase; }
+  :root[data-theme="dark"] #legend-panel .lg-head b{ color:#dce8f2; }
+  #legend-panel .lg-close{ border:none; background:none; color:var(--text-dim); cursor:pointer; font-size:13px; padding:0 2px; }
+  #legend-panel .lg-body{ padding:7px 10px 10px; overflow-y:auto; max-height:min(50vh, 420px); }
+  #legend-panel .lg-row{ display:flex; align-items:center; gap:6px; padding:3px 0; font-size:10.5px; color:var(--text); }
+  #legend-panel .lg-row .sw{ width:14px; height:8px; border-radius:2px; flex:none; }
+  #legend-panel .lg-row .ln{ width:14px; height:0; border-top:2px dashed; flex:none; }
+  #legend-panel .lg-empty{ color:var(--text-dim); font-size:10px; padding:2px 0; }
 
-  /* context menu */
-  #ctx-menu{ position:fixed; display:none; background:var(--panel); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow-2); overflow:hidden; z-index:2000; min-width:170px; }
+  /* context menu — appears at the cursor (right-click position), curvy corners like the rest of the UI */
+  #ctx-menu{ position:fixed; display:none; background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-2); overflow:hidden; z-index:2000; min-width:160px; }
   #ctx-menu.open{ display:block; }
-  #ctx-menu button{ display:block; width:100%; text-align:left; padding:8px 12px; border:none; background:var(--panel); font-size:11.5px; color:var(--text); cursor:pointer; }
+  #ctx-menu button{ display:block; width:100%; text-align:left; padding:8px 12px; border:none; background:var(--panel); font-size:11px; color:var(--text); cursor:pointer; }
   #ctx-menu button:hover{ background:var(--panel-2); }
 
-  /* measurement control */
-  #measure-ctl{ background:var(--panel); border-radius:8px; box-shadow:var(--shadow-2); border:1px solid var(--border); overflow:hidden; }
-  #measure-ctl button{ display:block; width:100%; padding:8px 12px; border:none; background:var(--panel); font-size:11.5px; color:var(--text); cursor:pointer; text-align:left; white-space:nowrap; }
-  #measure-ctl button.active{ background:var(--gold); color:#2a1d08; font-weight:700; }
-  #measure-ctl button:hover:not(.active){ background:var(--panel-2); }
-  #measure-tooltip{ background:var(--navy); color:#fff; padding:3px 8px; border-radius:5px; font-size:11px; white-space:nowrap; box-shadow:var(--shadow-1); }
+  /* measurement tooltips drawn on the map (the controls themselves now live in #dock-bar) */
   .leaflet-tooltip.measure-tip{ background:var(--navy); color:#fff; border:none; }
   .leaflet-tooltip.measure-tip::before{ display:none; }
 </style>
@@ -243,14 +323,24 @@
 <body>
 
 <div id="app">
-  <button id="sidebar-toggle" title="Toggle layer panel">&#9776;</button>
-  <div id="sidebar-scrim"></div>
+  <div id="map-wrap">
+    <div id="map"></div>
+    <div id="drop-overlay"><div class="card"><b>Drop your KML / KMZ</b><span>Release to set it as the Area of Interest</span></div></div>
+    <div id="busy-toast"><div class="spin"></div><span id="busy-text">Working…</span></div>
+    <div id="hint-toast"><span id="hint-text"></span><button id="hint-cancel">Cancel (Esc)</button></div>
+  </div>
 
-  <div id="sidebar">
+  <div id="geo-search">
+    <span class="ico">&#128269;</span>
+    <input id="geo-search-input" type="text" placeholder="Search location…" autocomplete="off" />
+    <button class="clear-btn" id="geo-search-clear" title="Clear">&#10005;</button>
+    <div id="geo-suggestions"></div>
+  </div>
+
+  <div id="dock-panel">
     <div id="brand">
       <div class="mark">5D</div>
       <div class="word"><b>5D Geo</b><span>CSG Cadastral Viewer</span></div>
-      <button id="theme-toggle" title="Toggle dark mode">&#9789;</button>
     </div>
     <div id="tagline">Live cadastral data from the Chief Surveyor General (CSGSearch). Drop a KML/KMZ, or draw an area directly on the map, to pull every touching parcel, boundary and servitude.</div>
 
@@ -288,18 +378,28 @@
         <h3>Keyboard shortcuts</h3>
         <div class="sk-row"><span>Focus layer search</span><kbd>/</kbd></div>
         <div class="sk-row"><span>Toggle dark mode</span><kbd>D</kbd></div>
-        <div class="sk-row"><span>Toggle layer panel</span><kbd>L</kbd></div>
+        <div class="sk-row"><span>Toggle panel</span><kbd>L</kbd></div>
         <div class="sk-row"><span>Cancel / deselect</span><kbd>Esc</kbd></div>
         <div class="sk-row"><span>Show this panel</span><kbd>?</kbd></div>
       </div>
     </div>
   </div>
 
-  <div id="map-wrap">
-    <div id="map"></div>
-    <div id="drop-overlay"><div class="card"><b>Drop your KML / KMZ</b><span>Release to set it as the Area of Interest</span></div></div>
-    <div id="busy-toast"><div class="spin"></div><span id="busy-text">Working…</span></div>
-    <div id="hint-toast"><span id="hint-text"></span><button id="hint-cancel">Cancel (Esc)</button></div>
+  <div id="legend-panel">
+    <div class="lg-head"><b>Legend</b><button class="lg-close" id="legend-close" title="Close">&#10005;</button></div>
+    <div class="lg-body"></div>
+  </div>
+
+  <div id="dock-wrap">
+    <div id="dock-bar">
+      <button class="dock-btn mark-btn" id="dock-menu" title="Layers &amp; Area of Interest"><b>5D</b></button>
+      <button class="dock-btn" id="dock-aoi" title="Area of interest">&#9733;</button>
+      <button class="dock-btn" id="dock-legend-btn" title="Legend"><b>Lg</b></button>
+      <button class="dock-btn" id="dock-measure-distance" title="Measure distance">&#128207;</button>
+      <button class="dock-btn" id="dock-measure-area" title="Measure area">&#9635;</button>
+      <button class="dock-btn" id="dock-measure-clear" title="Clear measurements">&#128465;</button>
+      <button class="dock-btn" id="dock-theme" title="Toggle dark mode">&#9789;</button>
+    </div>
   </div>
 </div>
 
@@ -320,33 +420,59 @@ function lsSet(key, val){ try{ localStorage.setItem(LS_PREFIX+key, JSON.stringif
    service's drawingInfo at design time). All polygon fills are effectively
    transparent; only outlines carry the SG symbology. */
 const CATEGORY_DEFS = [
-  { key:'parcels',    name:'Cadastral Parcels' },
-  { key:'farms',       name:'Farm Cadastre' },
-  { key:'servitudes',  name:'Servitudes' },
-  { key:'admin',       name:'Administrative Boundaries' }
+  { key:'landparcel', name:'Land Parcel' },
+  { key:'realright',  name:'Real Right' },
+  { key:'admin',      name:'Administrative' }
 ];
 
+// `secondary:true` marks the layers that switch themselves on automatically
+// once the map is zoomed in past SECONDARY_AUTO_ZOOM (see below) — everything
+// else stays off until the user opts in manually.
 const LAYER_DEFS = [
-  { key:'erven',        id:2,  name:'Erven',            cat:'parcels',    type:'polygon',  color:'#00b34d', weight:1.25, fillOpacity:0.05, minZoom:14, defaultChecked:true,  labelField:'TAG_VALUE' },
-  { key:'holdings',     id:4,  name:'Holdings',          cat:'parcels',    type:'polygon',  color:'#ff9900', weight:1.25, fillOpacity:0.05, minZoom:13, defaultChecked:true,  labelField:'TAG_VALUE' },
-  { key:'publicplaces', id:22, name:'Public Places',     cat:'parcels',    type:'polygon',  color:'#a900e6', weight:1.25, fillOpacity:0.05, minZoom:14, defaultChecked:false, labelField:'TAG_VALUE', labelBold:true },
-  { key:'farmportions', id:3,  name:'Farm Portions',     cat:'farms',      type:'polygon',  color:'#b5824a', weight:1.25, fillOpacity:0.05, minZoom:10, defaultChecked:true,  labelField:'TAG_VALUE' },
-  { key:'parentfarms',  id:5,  name:'Parent Farms',      cat:'farms',      type:'polygon',  color:'#b8ab00', weight:1.75, fillOpacity:0.05, minZoom:9,  defaultChecked:true,  labelField:'TAG_VALUE', labelBold:true },
-  { key:'servlines',    id:12, name:'Servitude Lines',   cat:'servitudes', type:'polyline', color:'#c98a1f', weight:1.5,  dash:'7,4',        minZoom:10, defaultChecked:false, labelField:'TAG_VALUE' },
-  { key:'servareas',    id:13, name:'Servitude Areas',   cat:'servitudes', type:'polygon',  color:'#c98a1f', weight:1.25, dash:'7,4', fillOpacity:0.04, minZoom:10, defaultChecked:false, labelField:'TAG_VALUE' },
-  { key:'provinces',    id:14, name:'Provinces',         cat:'admin',      type:'polygon',  color:'#e2231a', weight:2.25, fillOpacity:0,    minZoom:0,  alwaysVisible:true, defaultChecked:true, labelField:'PROVINCE' }
+  // ---- Land Parcel ----
+  { key:'erven',        id:2,   name:'Erven',        cat:'landparcel', type:'polygon',  color:'#00ff00', weight:1.0, fillOpacity:0, minZoom:14, defaultChecked:false, secondary:true, labelField:'TAG_VALUE', pane:'paneParcels' },
+  { key:'holding',      id:4,   name:'Holding',      cat:'landparcel', type:'polygon',  color:'#ff9900', weight:1.0, fillOpacity:0, minZoom:13, defaultChecked:false, secondary:true, labelField:'TAG_VALUE', pane:'paneParcels' },
+  { key:'publicplace',  id:22,  name:'Public Place', cat:'landparcel', type:'polygon',  color:'#a900e6', weight:1.0, fillOpacity:0, minZoom:14, defaultChecked:false, secondary:true, labelField:'TAG_VALUE', labelBold:true, pane:'paneParcels' },
+  { key:'township',     id:1,   name:'Township',     cat:'landparcel', type:'polygon',  color:'#9c9c9c', weight:1.0, fillOpacity:0, minZoom:12, defaultChecked:false, secondary:true, labelField:'TAG_VALUE', pane:'paneParcels' },
+  { key:'farmportion',  id:3,   name:'Farm Portion', cat:'landparcel', type:'polygon',  color:'#cc9964', weight:1.0, fillOpacity:0, minZoom:10, defaultChecked:false, secondary:true, labelField:'TAG_VALUE', pane:'paneFarms' },
+  { key:'parentfarm',   id:5,   name:'Parent Farm',  cat:'landparcel', type:'polygon',  color:'#cccc00', weight:2.0, fillOpacity:0, minZoom:9,  defaultChecked:false, pane:'paneFarms' },
+  // ---- Real Right ----
+  { key:'servarea',     id:13,  name:'Servitude Area', cat:'realright', type:'polygon',  color:'#ffcc66', weight:1.0, dash:'7,4', fillOpacity:0, minZoom:10, defaultChecked:false, secondary:true, labelField:'TAG_VALUE', pane:'paneServitudes' },
+  { key:'servline',     id:12,  name:'Servitude Line', cat:'realright', type:'polyline', color:'#ffcc66', weight:1.0, dash:'7,4',             minZoom:10, defaultChecked:false, secondary:true, labelField:'TAG_VALUE', pane:'paneServitudes' },
+  { key:'leasearea',    id:8,   name:'Lease Area',     cat:'realright', type:'polygon',  color:'#0000ff', weight:1.0, dash:'7,4', fillOpacity:0, minZoom:10, defaultChecked:false, labelField:'TAG_VALUE', pane:'paneServitudes' },
+  // ---- Administrative ----
+  { key:'compilation',  id:700, name:'Compilation',  cat:'admin', type:'polygon', color:'#8400a8', weight:1.0, fillOpacity:0, minZoom:0, defaultChecked:false, labelField:'TAG_VALUE', pane:'paneProvinces' },
+  { key:'municipality', id:40,  name:'Municipality', cat:'admin', type:'polygon', color:'#ff00ff', weight:2.0, fillOpacity:0, minZoom:0, defaultChecked:false, pane:'paneProvinces' },
+  { key:'province',     id:14,  name:'Province',     cat:'admin', type:'polygon', color:'#ff0000', weight:4.0, fillOpacity:0, minZoom:0, alwaysVisible:true, defaultChecked:true, labelField:'PROVINCE', pane:'paneProvinces' }
 ];
 const LAYER_BY_KEY = {}; LAYER_DEFS.forEach(l => LAYER_BY_KEY[l.key] = l);
 
+// One-time migration: earlier testing sessions (before the "only Province on
+// by default" redesign) may have persisted a different visibility set — e.g.
+// via "Show all" — to localStorage. Bump this version whenever the default
+// layer set changes meaningfully so stale saved state doesn't linger and
+// silently override the new defaults.
+const LAYER_DEFAULTS_VERSION = 2;
+if(lsGet('layerDefaultsVersion', 0) < LAYER_DEFAULTS_VERSION){
+  try{ localStorage.removeItem(LS_PREFIX + 'checked'); }catch(e){}
+  lsSet('layerDefaultsVersion', LAYER_DEFAULTS_VERSION);
+}
+
 // Restore persisted per-layer state (visibility / opacity) — falls back to catalogue defaults.
+// Secondary layers (see SECONDARY LAYERS: SCALE GATE below) are deliberately
+// excluded from persistence: their `checked` state is always derived live
+// from the current map scale, never carried over from a previous session —
+// otherwise a stale "on" from an earlier zoomed-in session would reappear on
+// reload even though the map always starts zoomed out, well above 100m scale.
 const savedChecked = lsGet('checked', null);
 const savedOpacity = lsGet('opacity', null);
 LAYER_DEFS.forEach(l => {
-  l.checked = savedChecked && (l.key in savedChecked) ? !!savedChecked[l.key] : !!l.defaultChecked;
+  l.hasSavedChecked = !!(savedChecked && (l.key in savedChecked));
+  l.checked = l.secondary ? false : (l.hasSavedChecked ? !!savedChecked[l.key] : !!l.defaultChecked);
   l.opacity = savedOpacity && (l.key in savedOpacity) ? savedOpacity[l.key] : 1;
   l.instance = null; l.loading = false; l.count = null; l.extentBounds = null;
 });
-function persistChecked(){ const o={}; LAYER_DEFS.forEach(l=>o[l.key]=l.checked); lsSet('checked', o); }
+function persistChecked(){ const o={}; LAYER_DEFS.forEach(l=>{ if(!l.secondary) o[l.key]=l.checked; }); lsSet('checked', o); }
 function persistOpacity(){ const o={}; LAYER_DEFS.forEach(l=>o[l.key]=l.opacity); lsSet('opacity', o); }
 
 let activeLayerKey = lsGet('activeLayer', null);
@@ -354,64 +480,44 @@ let expandedCats = lsGet('expandedCats', {}); // category-key -> bool, default c
 function persistExpanded(){ lsSet('expandedCats', expandedCats); }
 
 /* ============================= MAP + PANES ============================= */
-const map = L.map('map', { zoomControl:true, minZoom:3, maxZoom:20 }).setView([-29.0, 25.0], 6);
+const map = L.map('map', { zoomControl:false, minZoom:3, maxZoom:20 }).setView([-29.0, 25.0], 6);
+L.control.zoom({ position:'topright' }).addTo(map); // default top-left spot is now the floating dock panel
 
-// Custom panes — bottom to top: provinces < farms < parcels < servitudes < selection < KML < labels
+// Custom panes — bottom to top: provinces/admin < farms < parcels < servitudes/real-right < selection < KML < labels
+// Each LAYER_DEFS entry names its own pane directly (see `pane:` field) so the
+// merged Land Parcel / Real Right / Administrative categories can still keep
+// their original per-layer stacking order.
 [['paneProvinces',401],['paneFarms',402],['paneParcels',403],['paneServitudes',404],['paneSelection',405],['paneKml',406],['paneLabels',407]].forEach(([name,z]) => {
   const p = map.createPane(name); p.style.zIndex = z;
   if(name === 'paneSelection' || name === 'paneKml' || name === 'paneLabels') p.style.pointerEvents = 'none';
 });
-const CAT_PANE = { parcels:'paneParcels', farms:'paneFarms', servitudes:'paneServitudes', admin:'paneProvinces' };
 
-// ---- Basemaps: Light / Dark / Satellite (aerial imagery) ----
-const baseLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution:'&copy; OpenStreetMap contributors &copy; CARTO', subdomains:'abcd', maxZoom:20
-});
-const baseDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution:'&copy; OpenStreetMap contributors &copy; CARTO', subdomains:'abcd', maxZoom:20
-});
-const baseSatImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-  attribution:'Imagery &copy; Esri, Maxar, Earthstar Geographics', maxZoom:20
-});
-const baseSatLabels = L.tileLayer('https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-  attribution:'', maxZoom:20, pane:'tilePane'
-});
-const baseSatellite = L.layerGroup([baseSatImagery, baseSatLabels]);
-
-const baseLayers = { 'Light': baseLight, 'Dark': baseDark, 'Satellite (Aerial Imagery)': baseSatellite };
-let savedBase = lsGet('baseLayer', 'Light');
-if(!baseLayers[savedBase]) savedBase = 'Light';
-baseLayers[savedBase].addTo(map);
-const layersControl = L.control.layers(baseLayers, null, { position:'topright', collapsed:true }).addTo(map);
-map.on('baselayerchange', e => { lsSet('baseLayer', e.name); syncThemeToBase(e.name); });
+// ---- Basemap: Google Hybrid (satellite + labels) — the one basemap the app uses ----
+// Served over https rather than the http the tile URL is usually quoted with, so it
+// isn't blocked as mixed content when this page is served over https.
+L.tileLayer('https://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', {
+  attribution: '&copy; Google — SG data &copy; DALRRD Chief Surveyor General',
+  maxZoom: 21,
+  subdomains: [] // the URL already pins mt0 explicitly
+}).addTo(map);
 
 L.control.scale({ position:'bottomleft', imperial:false, maxWidth:160 }).addTo(map);
 
 /* ============================= THEME ============================= */
+// This only affects the dock/panel chrome now — there's a single basemap, so there's
+// nothing for it to swap on the map itself.
 function applyTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('theme-toggle').innerHTML = theme==='dark' ? '&#9728;' : '&#9789;';
+  document.getElementById('dock-theme').innerHTML = theme==='dark' ? '&#9728;' : '&#9789;';
   lsSet('theme', theme);
-}
-function syncThemeToBase(baseName){
-  // Keep UI chrome in step when the user explicitly picks the Dark / Light basemap.
-  if(baseName === 'Dark') applyTheme('dark');
-  else if(baseName === 'Light') applyTheme('light');
 }
 let currentTheme = lsGet('theme', 'light');
 applyTheme(currentTheme);
-document.getElementById('theme-toggle').addEventListener('click', () => {
+function toggleTheme(){
   currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
   applyTheme(currentTheme);
-  // If currently on a Light/Dark basemap, flip the tiles to match; leave Satellite alone.
-  if(savedBase === 'Light' || savedBase === 'Dark'){
-    const want = currentTheme === 'dark' ? 'Dark' : 'Light';
-    if(want !== savedBase){
-      map.removeLayer(baseLayers[savedBase]); baseLayers[want].addTo(map);
-      savedBase = want; lsSet('baseLayer', want);
-    }
-  }
-});
+}
+document.getElementById('dock-theme').addEventListener('click', toggleTheme);
 
 /* ============================= DOM refs ============================= */
 const statusDot = document.getElementById('status-dot');
@@ -438,7 +544,7 @@ function prettifyValue(k, v){
   if(k === 'DATE_STAMP' && typeof v === 'number'){ try{ return new Date(v).toLocaleDateString(); }catch(e){} }
   return v;
 }
-function popupHtmlFor(props, layerName){
+function popupTableFor(props){
   const all = Object.keys(props||{}).filter(k => props[k] !== null && props[k] !== '' && !HIDDEN_FIELDS.has(k));
   all.sort((a,b) => {
     const pa = PRIORITY_FIELDS.indexOf(a), pb = PRIORITY_FIELDS.indexOf(b);
@@ -447,7 +553,10 @@ function popupHtmlFor(props, layerName){
   });
   const keys = all.slice(0, 20);
   const rows = keys.map(k => `<tr><td class="k">${escapeHtml(prettifyKey(k))}</td><td>${escapeHtml(prettifyValue(k, props[k]))}</td></tr>`).join('');
-  return `<div class="popup-title">${escapeHtml(layerName)}</div><table class="popup-table">${rows || '<tr><td class="popup-empty">No attributes</td></tr>'}</table>`;
+  return `<table class="popup-table">${rows || '<tr><td class="popup-empty">No attributes</td></tr>'}</table>`;
+}
+function popupHtmlFor(props, layerName){
+  return `<div class="popup-title">${escapeHtml(layerName)}</div>` + popupTableFor(props);
 }
 
 function downloadBlob(blob, filename){
@@ -471,7 +580,9 @@ function selectFeature(geojsonFeature){
     }).addTo(selectionLayer);
   }catch(e){}
 }
-map.on('click', () => clearSelection());
+// Clicking clears the selection by default; the MULTI-LAYER FEATURE POPUP
+// handler further down re-selects whenever a click actually lands on a
+// feature, so this only has an effect on clicks that hit nothing.
 
 /* ============================= LABEL ENGINE =============================
    Renders TAG_VALUE (or PROVINCE for the Provinces layer) at the TAG_X/TAG_Y
@@ -592,23 +703,27 @@ const LabelEngine = {
   }
 };
 
-/* ============================= LAYER INSTANCES ============================= */
+/* ============================= LAYER INSTANCES =============================
+   No per-feature bindPopup/click here on purpose: when several browse layers
+   overlap at the same point (e.g. a Servitude Area drawn over an Erf), the
+   browser only ever delivers a native click to the single topmost SVG path,
+   so a per-feature popup would silently hide every layer underneath it. The
+   MULTI-LAYER FEATURE POPUP section further down instead does its own
+   turf.js hit-test across every checked layer on a single map click and
+   builds one popup you can page through — see that section for the popup
+   itself. */
 function createInstance(l){
   const opts = {
     url: `${SERVICE_URL}/${l.id}`,
     simplifyFactor: 0.4,
     precision: 6,
     fields: ['*'],
-    pane: CAT_PANE[l.cat],
-    onEachFeature: (feature, layer) => {
-      layer.bindPopup(() => popupHtmlFor(feature.properties, l.name), { maxHeight:280 });
-      layer.on('click', () => selectFeature(feature));
-    }
+    pane: l.pane
   };
   if(l.type === 'polyline'){
     opts.style = () => ({ color:l.color, weight:l.weight, opacity:0.9*l.opacity, dashArray:l.dash||null });
   } else {
-    opts.style = () => ({ color:l.color, weight:l.weight, opacity:0.9*l.opacity, fillColor:l.color, fillOpacity:(l.fillOpacity??0.05)*l.opacity, dashArray:l.dash||null });
+    opts.style = () => ({ color:l.color, weight:l.weight, opacity:0.9*l.opacity, fillColor:l.color, fillOpacity:(l.fillOpacity??0)*l.opacity, dashArray:l.dash||null });
   }
   const inst = L.esri.featureLayer(opts);
   inst.on('loading', () => { l.loading = true; refreshStatus(); });
@@ -622,22 +737,77 @@ function createInstance(l){
 }
 function isAboveScale(l){ return l.alwaysVisible || map.getZoom() >= l.minZoom; }
 function syncLayer(l){
-  const shouldShow = l.checked && isAboveScale(l);
+  // aoiActive (see AOI: DRAG & DROP KML/KMZ below) suppresses every general
+  // layer the same way an unchecked box or below-scale zoom would, so a
+  // checked-but-currently-hidden layer's labels don't keep floating on the
+  // map with no polygon underneath them.
+  const shouldShow = l.checked && isAboveScale(l) && !aoiActive;
   if(shouldShow){
     if(!l.instance) l.instance = createInstance(l);
     if(!map.hasLayer(l.instance)) l.instance.addTo(map);
     LabelEngine.register(l, l.instance); // re-register every time it's shown (survives hide/show cycles)
-  } else if(l.instance && map.hasLayer(l.instance)){
-    map.removeLayer(l.instance);
+  } else {
+    if(l.instance && map.hasLayer(l.instance)) map.removeLayer(l.instance);
+    LabelEngine.unregister(l.key);
   }
-  if(!l.checked){ LabelEngine.unregister(l.key); }
 }
 function syncAllLayers(){ LAYER_DEFS.forEach(syncLayer); refreshStatus(); renderLegend(); LabelEngine.scheduleRefresh(); }
+
+/* ============================= SECONDARY LAYERS: SCALE GATE =============================
+   On load only Province is on. The parcel-level "secondary" layers (Erven,
+   Holding, Public Place, Township, Farm Portion, Servitude Area, Servitude
+   Line) track the map's own scale bar — the one shown bottom-left
+   (L.control.scale below): switching ON the moment it reads 100m or less,
+   and back OFF the moment you zoom back out past that. We only act on the
+   threshold *crossing* (not on every pan/zoom) so a manual toggle made while
+   still on the same side of the 100m line isn't immediately fought — but
+   crossing the line either way always snaps all secondary layers to the
+   canonical on/off state for that side. We read the scale bar's own rendered
+   text rather than re-deriving zoom/scale maths ourselves, so this always
+   matches exactly what's on screen. */
+const SECONDARY_AUTO_SCALE_METERS = 100;
+function getDisplayedScaleMeters(){
+  const el = document.querySelector('.leaflet-control-scale-line');
+  if(!el) return Infinity;
+  const m = el.textContent.trim().match(/^([\d.]+)\s*(km|m)$/);
+  if(!m) return Infinity;
+  const val = parseFloat(m[1]);
+  return m[2] === 'km' ? val * 1000 : val;
+}
+// Same "nice round number" rounding L.Control.Scale uses internally (see its
+// _getRoundNum), so this predicts exactly what the bottom-left scale bar will
+// read at a given zoom/latitude without having to move the map first — used
+// by the geolocation search to jump straight to the 100m-scale zoom level.
+function leafletNiceScaleNumber(num){
+  const pow10 = Math.pow(10, (Math.floor(num) + '').length - 1);
+  let d = num / pow10;
+  d = d >= 10 ? 10 : d >= 5 ? 5 : d >= 3 ? 3 : d >= 2 ? 2 : 1;
+  return pow10 * d;
+}
+function zoomForScaleMeters(lat, targetMeters){
+  const minZ = map.getMinZoom(), maxZ = map.getMaxZoom();
+  for(let z = minZ; z <= maxZ; z++){
+    const metersPerPixel = 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, z);
+    const displayed = leafletNiceScaleNumber(metersPerPixel * 160); // 160 = our L.control.scale maxWidth
+    if(displayed <= targetMeters) return z;
+  }
+  return maxZ;
+}
+let secondaryLayersOn = false; // which side of the 100m threshold the secondary layers are currently synced to
+function applySecondaryScaleGate(){
+  const nowOn = getDisplayedScaleMeters() <= SECONDARY_AUTO_SCALE_METERS;
+  if(nowOn === secondaryLayersOn) return; // no threshold crossing — leave any manual toggles as they are
+  secondaryLayersOn = nowOn;
+  LAYER_DEFS.forEach(l => { if(l.secondary) l.checked = nowOn; });
+  persistChecked();
+  syncAllLayers();
+  renderLayerTree();
+}
 function applyLayerOpacity(l){
   if(l.instance && l.instance.setStyle){
     try{
       if(l.type==='polyline') l.instance.setStyle({ opacity:0.9*l.opacity });
-      else l.instance.setStyle({ opacity:0.9*l.opacity, fillOpacity:(l.fillOpacity??0.05)*l.opacity });
+      else l.instance.setStyle({ opacity:0.9*l.opacity, fillOpacity:(l.fillOpacity??0)*l.opacity });
     }catch(e){}
   }
 }
@@ -728,7 +898,10 @@ document.getElementById('btn-expand-all').addEventListener('click', () => { CATE
 document.getElementById('btn-collapse-all').addEventListener('click', () => { CATEGORY_DEFS.forEach(c=>expandedCats[c.key]=false); persistExpanded(); renderLayerTree(); });
 filterInput.addEventListener('input', renderLayerTree);
 map.on('zoomend', () => { syncAllLayers(); renderLayerTree(); });
-map.on('moveend', () => { refreshStatus(); LabelEngine.scheduleRefresh(); });
+// The scale control (added above) also listens on 'moveend' and was registered
+// first, so by the time this handler runs its DOM text is already up to date —
+// safe to read it here for the secondary-layer scale check.
+map.on('moveend', () => { applySecondaryScaleGate(); refreshStatus(); LabelEngine.scheduleRefresh(); });
 
 /* ---- context menu ---- */
 const ctxMenuEl = document.getElementById('ctx-menu');
@@ -751,22 +924,15 @@ function openCtxMenu(x, y, key){
 }
 document.addEventListener('click', () => ctxMenuEl.classList.remove('open'));
 
-/* ============================= LEGEND CONTROL ============================= */
-const LegendControl = L.control({ position:'bottomright' });
-LegendControl.onAdd = function(){
-  const div = L.DomUtil.create('div', 'leaflet-control');
-  div.id = 'map-legend';
-  div.classList.add('collapsed');
-  div.innerHTML = `<div class="lg-head"><b>Legend</b><span class="chev">&#9662;</span></div><div class="lg-body"></div>`;
-  L.DomEvent.disableClickPropagation(div);
-  div.querySelector('.lg-head').addEventListener('click', () => div.classList.toggle('collapsed'));
-  return div;
-};
-LegendControl.addTo(map);
+/* ============================= LEGEND POPOVER =============================
+   Part of the bottom dock now rather than a separate floating map control. */
 function renderLegend(){
-  const body = document.querySelector('#map-legend .lg-body');
+  const body = document.querySelector('#legend-panel .lg-body');
   if(!body) return;
-  const visible = LAYER_DEFS.filter(l => l.checked);
+  // While an AOI is active the general layers aren't actually drawn (see
+  // syncLayer's `!aoiActive` check) — reflect the AOI result layers instead
+  // so the legend always matches what's really on screen.
+  const visible = aoiActive ? aoiResults.filter(r => r.checked).map(r => r.layerDef) : LAYER_DEFS.filter(l => l.checked);
   if(!visible.length){ body.innerHTML = '<div class="lg-empty">No layers visible</div>'; return; }
   body.innerHTML = visible.map(l => l.type==='polyline'
     ? `<div class="lg-row"><span class="ln" style="border-color:${l.color}"></span>${escapeHtml(l.name)}</div>`
@@ -778,15 +944,102 @@ function renderLegend(){
 map.on('mousemove', e => { coordval.textContent = e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5); });
 map.on('mouseout', () => { coordval.textContent = '—'; });
 
-/* ============================= RESPONSIVE SIDEBAR ============================= */
-const sidebarEl = document.getElementById('sidebar');
-const scrimEl = document.getElementById('sidebar-scrim');
-function setSidebarOpen(open){
-  sidebarEl.classList.toggle('open', open);
-  scrimEl.classList.toggle('show', open);
+/* ============================= DOCK: OPEN / CLOSE THE FLOATING PANELS =============================
+   The dock bar (#dock-bar) is always visible, bottom-centre. The Layers/AOI panel
+   and the Legend popover pop up above it — like clicking an icon on a macOS dock —
+   and are mutually exclusive so they never stack on top of one another. */
+const dockPanelEl = document.getElementById('dock-panel');
+const legendPanelEl = document.getElementById('legend-panel');
+function setDockPanelOpen(open){
+  dockPanelEl.classList.toggle('show', open);
+  if(open) legendPanelEl.classList.remove('show');
+  lsSet('dockPanelOpen', open);
 }
-document.getElementById('sidebar-toggle').addEventListener('click', () => setSidebarOpen(!sidebarEl.classList.contains('open')));
-scrimEl.addEventListener('click', () => setSidebarOpen(false));
+function setLegendOpen(open){
+  legendPanelEl.classList.toggle('show', open);
+  if(open) dockPanelEl.classList.remove('show');
+}
+setDockPanelOpen(lsGet('dockPanelOpen', true));
+document.getElementById('dock-menu').addEventListener('click', () => setDockPanelOpen(!dockPanelEl.classList.contains('show')));
+document.getElementById('dock-aoi').addEventListener('click', () => setDockPanelOpen(true));
+document.getElementById('dock-legend-btn').addEventListener('click', () => setLegendOpen(!legendPanelEl.classList.contains('show')));
+document.getElementById('legend-close').addEventListener('click', () => setLegendOpen(false));
+
+/* ============================= GEOLOCATION SEARCH =============================
+   Same Mapbox Geocoding API + access token as used in beacon.index — just
+   re-wired to Leaflet (flyTo takes [lat,lng] rather than mapbox's [lng,lat],
+   and there's no mapboxgl map object here, so this talks to the REST endpoint
+   directly with fetch rather than going through the mapbox-gl-js library). */
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiZWFydGhzZW5zZWdlbyIsImEiOiJjbWN0aHUxaHYwNXhuMmpxenFlM3d5OGh5In0.2qpMEPAF4foyX9b7lv-tkA';
+const geoSearchEl = document.getElementById('geo-search');
+const geoSearchInput = document.getElementById('geo-search-input');
+const geoSearchClear = document.getElementById('geo-search-clear');
+const geoSuggestionsEl = document.getElementById('geo-suggestions');
+let geoSearchMarker = null;
+
+function geoDebounce(fn, delay){
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+
+async function fetchGeoSuggestions(query){
+  if(query.trim().length < 3){
+    geoSuggestionsEl.innerHTML = '';
+    geoSearchEl.classList.remove('active');
+    return;
+  }
+  geoSuggestionsEl.innerHTML = '<div class="geo-suggestion empty">Searching…</div>';
+  geoSearchEl.classList.add('active');
+  try{
+    const center = map.getCenter();
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?autocomplete=true&limit=7&proximity=${center.lng},${center.lat}&access_token=${MAPBOX_TOKEN}`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    geoSuggestionsEl.innerHTML = '';
+    if(data.features && data.features.length){
+      data.features.forEach(feature => {
+        const item = document.createElement('div');
+        item.className = 'geo-suggestion';
+        item.textContent = feature.place_name;
+        item.addEventListener('click', () => {
+          const [lng, lat] = feature.center;
+          // Land exactly on the same 100m scale threshold the secondary
+          // layers gate on, so a search result immediately shows parcel data.
+          map.flyTo([lat, lng], zoomForScaleMeters(lat, SECONDARY_AUTO_SCALE_METERS));
+          if(!geoSearchMarker) geoSearchMarker = L.marker([lat, lng]).addTo(map);
+          else geoSearchMarker.setLatLng([lat, lng]);
+          geoSearchInput.value = feature.place_name;
+          geoSearchEl.classList.add('has-value');
+          geoSuggestionsEl.innerHTML = '';
+          geoSearchEl.classList.remove('active');
+        });
+        geoSuggestionsEl.appendChild(item);
+      });
+    } else {
+      geoSuggestionsEl.innerHTML = '<div class="geo-suggestion empty">No results found</div>';
+    }
+  }catch(e){
+    geoSuggestionsEl.innerHTML = '<div class="geo-suggestion err">Error fetching suggestions</div>';
+  }
+}
+const debouncedGeoSearch = geoDebounce(fetchGeoSuggestions, 300);
+geoSearchInput.addEventListener('input', e => {
+  geoSearchEl.classList.toggle('has-value', !!e.target.value);
+  debouncedGeoSearch(e.target.value);
+});
+geoSearchInput.addEventListener('focus', () => {
+  if(geoSearchInput.value.trim().length >= 3){ geoSearchEl.classList.add('active'); fetchGeoSuggestions(geoSearchInput.value); }
+});
+geoSearchClear.addEventListener('click', () => {
+  geoSearchInput.value = '';
+  geoSearchEl.classList.remove('has-value', 'active');
+  geoSuggestionsEl.innerHTML = '';
+  geoSearchInput.focus();
+});
+document.addEventListener('click', e => {
+  if(!geoSearchEl.contains(e.target)) geoSearchEl.classList.remove('active');
+});
 
 /* ============================= KEYBOARD SHORTCUTS ============================= */
 const shortcutsPop = document.getElementById('shortcuts-pop');
@@ -795,14 +1048,14 @@ document.addEventListener('click', () => shortcutsPop.classList.remove('open'));
 document.addEventListener('keydown', e => {
   const tag = (e.target && e.target.tagName) || '';
   if(tag === 'INPUT' || tag === 'TEXTAREA'){
-    if(e.key === 'Escape') e.target.blur();
+    if(e.key === 'Escape'){ e.target.blur(); geoSearchEl.classList.remove('active'); }
     return;
   }
-  if(e.key === '/'){ e.preventDefault(); filterInput.focus(); }
-  else if(e.key.toLowerCase() === 'd'){ document.getElementById('theme-toggle').click(); }
-  else if(e.key.toLowerCase() === 'l'){ setSidebarOpen(!sidebarEl.classList.contains('open')); }
+  if(e.key === '/'){ e.preventDefault(); filterInput.focus(); setDockPanelOpen(true); }
+  else if(e.key.toLowerCase() === 'd'){ toggleTheme(); }
+  else if(e.key.toLowerCase() === 'l'){ setDockPanelOpen(!dockPanelEl.classList.contains('show')); }
   else if(e.key === '?'){ shortcutsPop.classList.toggle('open'); }
-  else if(e.key === 'Escape'){ clearSelection(); ctxMenuEl.classList.remove('open'); shortcutsPop.classList.remove('open'); cancelMeasurement(); cancelDrawAoi(); }
+  else if(e.key === 'Escape'){ map.closePopup(); clearSelection(); ctxMenuEl.classList.remove('open'); shortcutsPop.classList.remove('open'); setLegendOpen(false); geoSearchEl.classList.remove('active'); cancelMeasurement(); cancelDrawAoi(); }
 });
 
 /* ============================= SHARED "ACTIVE TOOL" HINT BANNER =============================
@@ -829,29 +1082,28 @@ function setToolsActive(active){
   if(active) map.closePopup();
 }
 
-/* ============================= MEASUREMENT TOOL ============================= */
-const MeasureControl = L.control({ position:'topright' });
+/* ============================= MEASUREMENT TOOL =============================
+   Controls now live as buttons directly in #dock-bar rather than a separate
+   floating Leaflet control. */
 let measureMode = null; // 'distance' | 'area' | null
 let measurePoints = [];
 let measureLayer = L.layerGroup().addTo(map);
 let measureFinished = L.layerGroup().addTo(map);
 let measureTooltip = null;
 
-MeasureControl.onAdd = function(){
-  const div = L.DomUtil.create('div', 'leaflet-control');
-  div.id = 'measure-ctl';
-  div.innerHTML = `<button data-m="distance">&#128207; Measure distance</button><button data-m="area">&#9635; Measure area</button><button data-m="clear">Clear measurements</button>`;
-  L.DomEvent.disableClickPropagation(div);
-  div.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-    const m = b.getAttribute('data-m');
-    if(m === 'clear'){ measureFinished.clearLayers(); cancelMeasurement(); return; }
-    startMeasure(m);
-  }));
-  return div;
-};
-MeasureControl.addTo(map);
+document.getElementById('dock-measure-distance').addEventListener('click', () => {
+  measureMode === 'distance' ? cancelMeasurement() : startMeasure('distance');
+});
+document.getElementById('dock-measure-area').addEventListener('click', () => {
+  measureMode === 'area' ? cancelMeasurement() : startMeasure('area');
+});
+document.getElementById('dock-measure-clear').addEventListener('click', () => {
+  measureFinished.clearLayers();
+  cancelMeasurement();
+});
 function updateMeasureButtons(){
-  document.querySelectorAll('#measure-ctl button').forEach(b => b.classList.toggle('active', b.getAttribute('data-m') === measureMode));
+  document.getElementById('dock-measure-distance').classList.toggle('active', measureMode === 'distance');
+  document.getElementById('dock-measure-area').classList.toggle('active', measureMode === 'area');
 }
 function startMeasure(mode){
   cancelMeasurement();
@@ -940,7 +1192,16 @@ function renderDrawPreview(){
 }
 function finishDrawAoi(){
   if(drawPoints.length < 3){ cancelDrawAoi(); return; }
-  const ring = drawPoints.concat([drawPoints[0]]);
+  // A KML's ring always comes out of toGeoJSON.kml() in the standard
+  // GeoJSON (counter-clockwise exterior) winding, so buildEsriGeometry()'s
+  // blind reverseRing() reliably flips it to the clockwise winding Esri
+  // expects. A hand-drawn ring's winding instead depends on which direction
+  // the user happened to click around the shape — about half the time
+  // that's already clockwise, and reversing an already-clockwise ring
+  // inverts it, which can make the ArcGIS query match almost everything
+  // *outside* the drawn area instead of inside it. Force it to the same
+  // standard winding here so both paths behave identically downstream.
+  const ring = normalizeWinding(drawPoints.concat([drawPoints[0]]), false);
   const fc = { type:'FeatureCollection', features:[{ type:'Feature', properties:{}, geometry:{ type:'Polygon', coordinates:[ring] } }] };
   cancelDrawAoi();
   loadAOI(fc, 'Manually drawn area');
@@ -961,6 +1222,102 @@ map.on('dblclick', e => {
   finishDrawAoi();
 });
 
+/* ============================= MULTI-LAYER FEATURE POPUP =============================
+   A single map click does its own hit-test across every currently checked,
+   above-scale browse layer (polygons via turf.booleanPointInPolygon, lines
+   via a pixel-tolerance distance check) rather than relying on the native
+   per-path click, which only ever reaches the one topmost overlapping
+   feature. Every layer whose geometry is hit at that point is collected, in
+   the same order they appear in the catalogue (Erven, Holding, Public
+   Place, ...), and shown one at a time in a single popup with Prev/Next
+   arrows to page through the rest. */
+function minDistanceToLineGeometryKm(pt, geometry){
+  if(!geometry) return Infinity;
+  if(geometry.type === 'LineString'){
+    try{ return turf.pointToLineDistance(pt, turf.lineString(geometry.coordinates), { units:'kilometers' }); }catch(e){ return Infinity; }
+  }
+  if(geometry.type === 'MultiLineString'){
+    let min = Infinity;
+    geometry.coordinates.forEach(coords => {
+      try{ const d = turf.pointToLineDistance(pt, turf.lineString(coords), { units:'kilometers' }); if(d < min) min = d; }catch(e){}
+    });
+    return min;
+  }
+  return Infinity;
+}
+function hitTestLayer(l, latlng, pt){
+  const hits = [];
+  if(!l.instance || !l.checked || !isAboveScale(l) || !l.instance.eachFeature) return hits;
+  const tolerancePx = 6;
+  const mpp = metersPerPixel(latlng);
+  l.instance.eachFeature(featLayer => {
+    const f = featLayer.feature;
+    if(!f || !f.geometry) return;
+    try{
+      if(l.type === 'polyline'){
+        const distM = minDistanceToLineGeometryKm(pt, f.geometry) * 1000;
+        if(distM <= tolerancePx * mpp) hits.push({ layerDef:l, feature:f });
+      } else if(turf.booleanPointInPolygon(pt, f)){
+        hits.push({ layerDef:l, feature:f });
+      }
+    }catch(e){}
+  });
+  return hits;
+}
+
+let activePopup = null;
+let activeHits = [];
+let activeHitIndex = 0;
+
+function buildMultiPopupHtml(){
+  const { layerDef, feature } = activeHits[activeHitIndex];
+  const hasNav = activeHits.length > 1;
+  const prevName = activeHitIndex > 0 ? activeHits[activeHitIndex-1].layerDef.name : '';
+  const nextName = activeHitIndex < activeHits.length-1 ? activeHits[activeHitIndex+1].layerDef.name : '';
+  const prevBtn = hasNav ? `<button class="pn-side pn-left" id="popup-prev" ${activeHitIndex===0 ? 'disabled' : ''} title="${prevName ? 'Previous: '+escapeHtml(prevName) : ''}">&#8249;</button>` : '';
+  const nextBtn = hasNav ? `<button class="pn-side pn-right" id="popup-next" ${activeHitIndex===activeHits.length-1 ? 'disabled' : ''} title="${nextName ? 'Next: '+escapeHtml(nextName) : ''}">&#8250;</button>` : '';
+  const count = hasNav ? `<span class="pn-count">${activeHitIndex+1} / ${activeHits.length}</span>` : '';
+  return `<div class="popup-shell${hasNav ? ' has-nav' : ''}">${prevBtn}${nextBtn}<div class="popup-body">` +
+    `<div class="popup-head"><span class="popup-title">${escapeHtml(layerDef.name)}</span>${count}</div>` +
+    popupTableFor(feature.properties) +
+    `</div></div>`;
+}
+function wireMultiPopupNav(){
+  const prevBtn = document.getElementById('popup-prev');
+  const nextBtn = document.getElementById('popup-next');
+  if(prevBtn) prevBtn.addEventListener('click', e => { e.stopPropagation(); if(activeHitIndex > 0){ activeHitIndex--; refreshMultiPopup(); } });
+  if(nextBtn) nextBtn.addEventListener('click', e => { e.stopPropagation(); if(activeHitIndex < activeHits.length-1){ activeHitIndex++; refreshMultiPopup(); } });
+}
+function refreshMultiPopup(){
+  if(!activePopup) return;
+  activePopup.setContent(buildMultiPopupHtml());
+  wireMultiPopupNav();
+  selectFeature(activeHits[activeHitIndex].feature);
+}
+map.on('click', e => {
+  if(drawingAoi || measureMode) return;
+  const pt = turf.point([e.latlng.lng, e.latlng.lat]);
+  const hits = [];
+  // General layers are hidden (not just visually) while an AOI is active —
+  // see aoiActive in syncLayer() — so skip hit-testing them; AOI result
+  // features still have their own independent bindPopup/click.
+  if(!aoiActive) LAYER_DEFS.forEach(l => hits.push(...hitTestLayer(l, e.latlng, pt)));
+  if(!hits.length){
+    clearSelection();
+    if(activePopup){ map.closePopup(activePopup); activePopup = null; }
+    return;
+  }
+  activeHits = hits;
+  activeHitIndex = 0;
+  activePopup = L.popup({ minWidth:230, autoPanPadding:[24,24] })
+    .setLatLng(e.latlng)
+    .setContent(buildMultiPopupHtml())
+    .openOn(map);
+  wireMultiPopupNav();
+  selectFeature(activeHits[0].feature);
+});
+map.on('popupclose', e => { if(e.popup === activePopup){ activePopup = null; clearSelection(); } });
+
 /* ============================= INIT: service metadata + per-layer extents ============================= */
 fetch(SERVICE_URL + '?f=json').then(r => r.json()).then(meta => {
   if(meta.fullExtent){
@@ -970,8 +1327,8 @@ fetch(SERVICE_URL + '?f=json').then(r => r.json()).then(meta => {
       fullExtent = L.latLngBounds(sw, ne);
     } catch(e){}
   }
-  renderLayerTree(); syncAllLayers();
-}).catch(() => { renderLayerTree(); syncAllLayers(); });
+  applySecondaryScaleGate(); renderLayerTree(); syncAllLayers();
+}).catch(() => { applySecondaryScaleGate(); renderLayerTree(); syncAllLayers(); });
 
 Promise.allSettled(LAYER_DEFS.map(l => fetch(`${SERVICE_URL}/${l.id}?f=json`).then(r=>r.json()))).then(results => {
   results.forEach((res, i) => {
@@ -994,6 +1351,16 @@ let aoiGeojson = null;
 let aoiResultsGroup = L.layerGroup().addTo(map);
 let aoiResults = []; // {layerDef, geojson, checked, mapLayer}
 let dragDepth = 0;
+// While an AOI is loaded, the general operational layers (which always query
+// and render everything in the current viewport, AOI or not) are hidden from
+// the map — see the `!aoiActive` check in syncLayer() — so the only parcel
+// data shown is the AOI-intersecting subset in aoiResultsGroup. Layer
+// checkbox state itself is untouched; this only affects what's drawn.
+let aoiActive = false;
+// Collapsed by default each time an AOI is (re)loaded, so the download
+// button/format menu is visible right away instead of being pushed below a
+// long list of matched layers.
+let aoiLayersExpanded = false;
 
 ['dragenter','dragover'].forEach(evt => document.addEventListener(evt, e => {
   if(!e.dataTransfer || !Array.from(e.dataTransfer.types||[]).includes('Files')) return;
@@ -1043,6 +1410,9 @@ function clearAOI(){
   aoiResults.forEach(r => LabelEngine.unregister('aoi_'+r.layerDef.key));
   aoiResults = [];
   aoiGeojson = null;
+  aoiActive = false;
+  aoiLayersExpanded = false;
+  syncAllLayers(); // bring the general operational layers back
   aoiBody.classList.add('placeholder');
   aoiBody.innerHTML = `<div class="dz-hint">Drag &amp; drop a <b>.kml</b> or <b>.kmz</b> file anywhere on the map, or click the <b>&#9998;</b> pencil above to draw an area directly on the map. All intersecting SG layers will be found automatically.</div>`;
   LabelEngine.scheduleRefresh();
@@ -1054,6 +1424,12 @@ function loadAOI(geojson, filename){
 async function loadAOIImpl(geojson, filename){
   clearAOI();
   aoiGeojson = geojson;
+  // Hide the general operational layers for the duration — only the
+  // AOI-intersecting subset (aoiResultsGroup, built below) should be visible
+  // while an AOI is loaded, whether it came from a KML/KMZ drop or was drawn
+  // by hand. See the `!aoiActive` check in syncLayer().
+  aoiActive = true;
+  syncAllLayers();
 
   // KML boundary — always on top, no fill, thick red, with a soft halo for contrast against imagery.
   aoiLayer = L.layerGroup([
@@ -1079,16 +1455,21 @@ async function loadAOIImpl(geojson, filename){
   aoiResults = [];
   settled.forEach(s => {
     if(s.status === 'fulfilled' && s.value.fc.features && s.value.fc.features.length){
-      // Default inclusion mirrors what's currently visible on the map — not every layer.
-      aoiResults.push({ layerDef: s.value.def, geojson: s.value.fc, checked: !!s.value.def.checked });
+      // Default inclusion mirrors what's currently visible on the map — not every
+      // layer — except Province, which is excluded from the AOI/export selection
+      // by default even though it's always visible on the map itself (it's rarely
+      // wanted in a cadastral data export and dominates the layer list otherwise).
+      const isProvince = s.value.def.key === 'province';
+      aoiResults.push({ layerDef: s.value.def, geojson: s.value.fc, checked: isProvince ? false : !!s.value.def.checked });
     }
   });
   aoiResults.sort((a,b) => b.geojson.features.length - a.geojson.features.length);
 
   aoiResultsGroup.clearLayers();
-  aoiResults.forEach(r => { r.mapLayer = buildAoiMapLayer(r); if(r.checked) r.mapLayer.addTo(aoiResultsGroup); });
+  aoiResults.forEach(r => { r.mapLayer = buildAoiMapLayer(r); if(r.checked) r.mapLayer.addTo(aoiResultsGroup); syncAoiLabels(r); });
 
   renderAoiPanel(filename);
+  renderLegend();
   setBusy(false);
 }
 
@@ -1144,27 +1525,109 @@ async function queryAOIForLayer(layerDef, esriGeometry){
 
 function buildAoiMapLayer(r){
   const layerDef = r.layerDef, fc = r.geojson;
-  // Same symbology as the live browse layers, just rendered a touch bolder so AOI results read clearly.
+  // Identical symbology to the live browse layers so styling stays consistent everywhere.
   const opts = {
-    pane: CAT_PANE[layerDef.cat],
+    pane: layerDef.pane,
     onEachFeature: (feature, layer) => {
       layer.bindPopup(() => popupHtmlFor(feature.properties, layerDef.name), { maxHeight:280 });
       layer.on('click', () => selectFeature(feature));
     }
   };
   if(layerDef.type === 'polyline'){
-    opts.style = () => ({ color:layerDef.color, weight:layerDef.weight+1, opacity:0.95, dashArray:layerDef.dash||null });
+    opts.style = () => ({ color:layerDef.color, weight:layerDef.weight, opacity:0.95, dashArray:layerDef.dash||null });
   } else {
-    opts.style = () => ({ color:layerDef.color, weight:layerDef.weight+0.5, opacity:0.95, fillColor:layerDef.color, fillOpacity:(layerDef.fillOpacity??0.05)+0.08, dashArray:layerDef.dash||null });
+    opts.style = () => ({ color:layerDef.color, weight:layerDef.weight, opacity:0.95, fillColor:layerDef.color, fillOpacity:layerDef.fillOpacity ?? 0, dashArray:layerDef.dash||null });
   }
   const gj = L.geoJSON(fc, opts);
-  // Live-checked getter so toggling the AOI panel checkbox (or clearing the AOI) is
-  // reflected immediately without needing to re-register on every click.
-  LabelEngine.register({ ...layerDef, key:'aoi_'+layerDef.key, get checked(){ return r.checked; } }, gj);
   return gj;
+}
+// Registers/unregisters this AOI result's labels to match its current checked
+// state — called explicitly whenever that state actually changes (initial
+// load, checkbox toggle, clear), the same "re-register every time it's
+// shown" pattern used for the general browse layers, rather than a live
+// getter the label engine would have to keep re-evaluating.
+function syncAoiLabels(r){
+  const key = 'aoi_' + r.layerDef.key;
+  if(r.checked) LabelEngine.register({ ...r.layerDef, key, checked:true }, r.mapLayer);
+  else LabelEngine.unregister(key);
 }
 
 function getCheckedAoiResults(){ return aoiResults.filter(r => r.checked); }
+
+/* ===================== SHARED: attribute summary CSV (goes out with every export) =====================
+   The Surveyor-General field names aren't self-explanatory, and the thing
+   people actually want out of an export is a handful of specific attributes
+   per layer type — most importantly the 21-digit LPI/SG code used afterwards
+   to pull the parcel diagram. Rather than making people dig through the full
+   KML/Shapefile/GeoPackage attribute tables for that, every export format
+   also drops a plain CSV with just those fields, aliased to plain language.
+   Layers with no defined group here (Township, Compilation, Municipality,
+   Province) simply aren't part of this summary — only in the full export. */
+const CSV_FIELD_GROUPS = {
+  erven:       { fields:['TAG_VALUE','MIN_REGION','ID'], aliases:['Property','Township','21 Digit LPI Code'] },
+  holding:     { fields:['TAG_VALUE','MIN_REGION','ID'], aliases:['Property','Township','21 Digit LPI Code'] },
+  publicplace: { fields:['TAG_VALUE','MIN_REGION','ID'], aliases:['Property','Township','21 Digit LPI Code'] },
+  farmportion: { fields:['TAG_VALUE','FARM_NAME','ID'], aliases:['Property','Farm Name','21 Digit LPI Code'] },
+  parentfarm:  { fields:['TAG_VALUE','FARM_NAME','ID'], aliases:['Property','Farm Name','21 Digit LPI Code'] },
+  servarea:    { fields:['TAG_VALUE'], aliases:['S.G. Number'] },
+  servline:    { fields:['TAG_VALUE'], aliases:['S.G. Number'] },
+  leasearea:   { fields:['TAG_VALUE'], aliases:['S.G. Number'] },
+};
+// Fixed reading order (independent of aoiResults' feature-count sort) so the
+// CSV always lists layers the same way regardless of which area was loaded.
+const CSV_LAYER_ORDER = ['erven','holding','publicplace','farmportion','parentfarm','servarea','servline','leasearea'];
+
+function csvEscape(v){
+  if(v === null || v === undefined) return '';
+  const s = String(v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+// Plain CSV has no concept of bold or cell alignment at all — those are
+// spreadsheet-file (styles.xml) features, not something a .csv can carry.
+// Left alignment is Excel/Sheets' default for anything it treats as *text*,
+// so the only field that needs help here is the 21-digit LPI/SG "ID" code:
+// a long all-digit string like that gets auto-detected as a number by Excel,
+// which right-aligns it and — worse — silently rounds it to ~15 significant
+// digits (real precision loss on the exact code this file exists to carry).
+// Wrapping it as ="021003000000012300000" is the standard trick to force
+// Excel to treat it as literal text (left-aligned, digits intact) instead;
+// csvEscape then quotes the whole thing as usual since it contains quotes.
+// A script parsing the raw CSV text will see the ="..." wrapper too — strip
+// the leading ="  and trailing " to recover the bare code.
+function csvForceText(v){
+  if(v === null || v === undefined || v === '') return '';
+  return '="' + String(v).replace(/"/g,'""') + '"';
+}
+// One section per layer: a title line, a header line of the aliases, then one
+// row per feature — with a blank line between sections, as requested. Only
+// checked layers that both have a CSV_FIELD_GROUPS entry and actually have
+// intersecting features get a section; if nothing qualifies, returns null so
+// callers can skip the download rather than shipping an empty file.
+function buildAttributesCsv(){
+  const checked = getCheckedAoiResults();
+  const byKey = new Map(checked.map(r => [r.layerDef.key, r]));
+  const sections = [];
+  CSV_LAYER_ORDER.forEach(key => {
+    const group = CSV_FIELD_GROUPS[key];
+    const r = byKey.get(key);
+    if(!r || !r.geojson.features.length) return;
+    const lines = [r.layerDef.name, group.aliases.map(csvEscape).join(',')];
+    r.geojson.features.forEach(f => {
+      const props = f.properties || {};
+      lines.push(group.fields.map(fld => {
+        const raw = props[fld];
+        return csvEscape(fld === 'ID' ? csvForceText(raw) : raw);
+      }).join(','));
+    });
+    sections.push(lines.join('\r\n'));
+  });
+  return sections.length ? sections.join('\r\n\r\n') + '\r\n' : null;
+}
+function downloadAttributesCsv(){
+  const csv = buildAttributesCsv();
+  if(!csv) return;
+  downloadBlob(new Blob([csv], { type:'text/csv;charset=utf-8' }), 'csg_cadastral_attributes.csv');
+}
 
 function renderAoiPanel(filename){
   const totalFeatures = aoiResults.reduce((s,r) => s + r.geojson.features.length, 0);
@@ -1194,7 +1657,10 @@ function renderAoiPanel(filename){
   aoiBody.innerHTML = `
     <div class="aoi-meta"><b>${escapeHtml(filename)}</b> — ${aoiResults.length} layer(s), ${totalFeatures} feature(s) intersect. <button id="aoi-clear">Clear</button></div>
     ${areaLine}
-    <div id="aoi-layer-rows">${rows}</div>
+    <div id="aoi-layers-toggle" class="aoi-layers-toggle${aoiLayersExpanded ? ' expanded' : ''}">
+      <span class="chev">&#9656;</span> ${aoiResults.length} matched layer${aoiResults.length===1?'':'s'} (${checkedCount} selected) — tap to ${aoiLayersExpanded ? 'hide' : 'show'}
+    </div>
+    <div id="aoi-layer-rows"${aoiLayersExpanded ? '' : ' style="display:none;"'}>${rows}</div>
     <div id="download-wrap">
       <button id="btn-download">&#8681; Download Cadastral Data (${checkedCount} layer${checkedCount===1?'':'s'})</button>
       <div id="download-menu">
@@ -1207,11 +1673,16 @@ function renderAoiPanel(filename){
     </div>`;
 
   document.getElementById('aoi-clear').addEventListener('click', clearAOI);
+  document.getElementById('aoi-layers-toggle').addEventListener('click', () => {
+    aoiLayersExpanded = !aoiLayersExpanded;
+    renderAoiPanel(filename);
+  });
   aoiResults.forEach(r => {
     document.getElementById(`aoi-chk-${r.layerDef.id}`).addEventListener('change', e => {
       r.checked = e.target.checked;
       if(r.checked) r.mapLayer.addTo(aoiResultsGroup); else aoiResultsGroup.removeLayer(r.mapLayer);
-      LabelEngine.scheduleRefresh();
+      syncAoiLabels(r);
+      renderLegend();
       renderAoiPanel(filename);
     });
   });
@@ -1251,11 +1722,50 @@ function kmlColor(hex, alphaFraction){
 }
 function kmlStyleBlockFor(layerDef, styleId){
   const isLine = layerDef.type === 'polyline';
-  const lineWidth = isLine ? layerDef.weight + 1 : layerDef.weight + 0.5;
+  const lineWidth = layerDef.weight;
   const lineColor = kmlColor(layerDef.color, 1);
-  const fillAlpha = isLine ? 0 : (layerDef.fillOpacity ?? 0.05) + 0.08;
+  const fillAlpha = isLine ? 0 : (layerDef.fillOpacity ?? 0);
   const fillTag = isLine ? '' : `<PolyStyle><color>${kmlColor(layerDef.color, fillAlpha)}</color><fill>${fillAlpha > 0 ? 1 : 0}</fill><outline>1</outline></PolyStyle>`;
   return `<Style id="${styleId}"><LineStyle><color>${lineColor}</color><width>${lineWidth}</width></LineStyle>${fillTag}</Style>`;
+}
+// A minimal QGIS "simple" labeling block using the same field the live app
+// labels with (TAG_VALUE / PROVINCE), text colour matching the layer's own
+// symbol colour, and a black buffer/halo — same convention as the on-map
+// labels. Layers with no labelField (Parent Farm, Municipality, Compilation)
+// get no labeling block, matching how they're never labelled on the map either.
+function buildQmlLabeling(layerDef){
+  if(!layerDef.labelField) return { categories:'', xml:'<labeling-enabled>0</labeling-enabled>', previewExpr:'' };
+  const [r,g,b] = colorToRgbArray(layerDef.color);
+  // NOTE: in QGIS's actual saved-style schema, the label source field/expression
+  // ("fieldName"/"isExpression") are XML ATTRIBUTES on the <text-style> element
+  // itself (QgsPalLayerSettings::writeXml sets them on the element returned by
+  // QgsTextFormat::writeXml) — NOT a separate <fieldName> child of <labeling>.
+  // A previous version of this function emitted <fieldName>/<isExpression> as
+  // standalone elements, which QGIS's reader silently ignores (it only ever
+  // calls textStyleElem.attribute("fieldName")), so the field never actually
+  // took effect and QGIS fell back to its own auto-guessed "friendly" field.
+  // obstacle="0" / overlapHandling="AllowOverlapAtNoCost": these cadastral layers
+  // geographically nest inside one another (Erven sit inside Farm Portion sit
+  // inside Township, etc.), so with QGIS's *default* obstacle="1" every polygon
+  // layer blocks every other layer's labels from being placed anywhere over its
+  // footprint — a single layer's labels look fine alone, then vanish the moment
+  // a second overlapping layer is switched on. The live app has no such
+  // collision avoidance (LabelEngine always draws every active layer's labels),
+  // so the export disables QGIS's cross-layer obstacle/overlap suppression to
+  // match that always-show behaviour.
+  const fieldName = xmlEsc(layerDef.labelField);
+  const xml = `<labeling-enabled>1</labeling-enabled>
+  <labeling type="simple">
+    <settings calloutType="simple">
+      <text-style fieldName="${fieldName}" isExpression="0" useSubstitutions="0" legendString="Aa" fontFamily="Arial" fontWeight="${layerDef.labelBold ? 75 : 50}" fontBold="${layerDef.labelBold ? 1 : 0}" fontItalic="0" fontStrikeout="0" fontUnderline="0" fontSize="9" fontSizeUnit="Point" textColor="${r},${g},${b},255" textOpacity="1">
+        <text-buffer bufferDraw="1" bufferSize="1" bufferSizeUnits="MM" bufferColor="0,0,0,255" bufferOpacity="1" bufferNoFill="1"/>
+      </text-style>
+      <text-format wrapChar="" autoWrapLength="0" multilineAlign="0"/>
+      <placement placement="${layerDef.type === 'polyline' ? 2 : 0}" quadOffset="4" xOffset="0" yOffset="0" rotationAngle="0" fitInPolygonOnly="1" dist="0" overlapHandling="AllowOverlapAtNoCost"/>
+      <rendering drawLabels="1" scaleVisibility="0" upsidedownLabels="0" fontLimitPixelSize="0" fontMinPixelSize="3" fontMaxPixelSize="10000" obstacle="0"/>
+    </settings>
+  </labeling>`;
+  return { categories:'|Labeling|LayerConfiguration', xml, previewExpr: layerDef.labelField };
 }
 // A minimal, broadly-compatible QGIS style definition (.qml) for a single layer's symbology —
 // used both as a Shapefile sidecar and embedded in the GeoPackage's layer_styles table.
@@ -1264,7 +1774,7 @@ function buildQml(layerDef){
   const isLine = layerDef.type === 'polyline';
   const penStyle = layerDef.dash ? 'dash' : 'solid';
   const outlineWidthMm = ((layerDef.weight || 1) * 0.28).toFixed(2); // rough px->mm so it still reads thin on screen
-  const fillAlpha255 = Math.round((((layerDef.fillOpacity ?? 0.05)) + 0.08) * 255);
+  const fillAlpha255 = Math.round((layerDef.fillOpacity ?? 0) * 255);
   const symbolXml = isLine
     ? `<symbol type="line" alpha="1" clip_to_extent="1" name="0" force_rhr="0">
         <layer pass="0" class="SimpleLine" locked="0" enabled="1">
@@ -1289,14 +1799,21 @@ function buildQml(layerDef){
           </Option>
         </layer>
       </symbol>`;
+  const labeling = buildQmlLabeling(layerDef);
+  // previewExpression/displayfield: QGIS otherwise auto-guesses its own "friendly"
+  // display field (e.g. for the Identify tool / feature list), which can land on
+  // an unrelated field. Pin it to the same field used for on-map labelling.
+  const previewBlock = labeling.previewExpr
+    ? `\n  <previewExpression>"${xmlEsc(labeling.previewExpr)}"</previewExpression>\n  <displayfield>${xmlEsc(labeling.previewExpr)}</displayfield>`
+    : '';
   return `<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis version="3.28" styleCategories="Symbology">
+<qgis version="3.28" styleCategories="Symbology${labeling.categories}">
   <renderer-v2 type="singleSymbol" forceraster="0" symbollevels="0" referencescale="-1" enableorderby="0">
     <symbols>
       ${symbolXml}
     </symbols>
   </renderer-v2>
-  <labeling-enabled>0</labeling-enabled>
+  ${labeling.xml}${previewBlock}
 </qgis>`;
 }
 
@@ -1332,11 +1849,48 @@ function featureToPlacemark(feature, layerName, idx, styleId){
   const styleRef = styleId ? `<styleUrl>#${styleId}</styleUrl>` : '';
   return `<Placemark><name>${xmlEsc(nameVal)}</name>${styleRef}${propsToExtendedData(props)}${geometryToKML(feature.geometry)}</Placemark>`;
 }
+// Text labels in KML: a polygon Placemark's own <name> isn't reliably shown
+// as a floating label by every viewer, so — matching the same technique used
+// in reference survey exports (a dedicated point per label, name = label
+// text, icon hidden via IconStyle scale 0) — each labelled layer gets its
+// own "<Layer> Labels" folder of point placemarks at the same TAG_X/TAG_Y
+// anchor the on-map labels use (falling back to the feature's centroid).
+function kmlLabelStyleBlockFor(layerDef, styleId){
+  return `<Style id="${styleId}"><IconStyle><scale>0</scale></IconStyle><LabelStyle><color>${kmlColor(layerDef.color,1)}</color><scale>0.9</scale></LabelStyle></Style>`;
+}
+function labelAnchorForFeature(feature){
+  const p = feature.properties || {};
+  if(typeof p.TAG_X === 'number' && typeof p.TAG_Y === 'number' && isFinite(p.TAG_X) && isFinite(p.TAG_Y) && (p.TAG_X || p.TAG_Y)){
+    return [p.TAG_X, p.TAG_Y];
+  }
+  try{ return turf.pointOnFeature(feature).geometry.coordinates; }catch(e){ return null; }
+}
+function labelPointPlacemarksFor(r, styleId){
+  if(!r.layerDef.labelField) return '';
+  return r.geojson.features.map(f => {
+    const text = (f.properties || {})[r.layerDef.labelField];
+    if(!text || !f.geometry) return '';
+    const anchor = labelAnchorForFeature(f);
+    if(!anchor) return '';
+    return `<Placemark><name>${xmlEsc(text)}</name><styleUrl>#${styleId}</styleUrl><Point><coordinates>${anchor[0]},${anchor[1]},0</coordinates></Point></Placemark>`;
+  }).join('');
+}
 function buildKMLDocument(){
-  const aoiFolder = aoiGeojson ? `<Folder><name>Area of Interest</name><Style><LineStyle><color>ff1a23e2</color><width>4</width></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>${aoiGeojson.features.map((f,i)=>featureToPlacemark(f,'AOI',i)).join('')}</Folder>` : '';
+  // Matches the on-map aoiLayer look: a soft, low-opacity wide "glow" line plus
+  // a crisp solid core line, both with fill explicitly switched off (a bare
+  // <fill>0</fill> with no <color>/<outline> is silently ignored by some KML
+  // viewers, which then default to an opaque white fill — see kmlStyleBlockFor
+  // for the same explicit color+fill+outline pattern used elsewhere).
+  const aoiHaloStyleId = 'aoiHaloStyle', aoiCoreStyleId = 'aoiCoreStyle';
+  const aoiHaloStyle = `<Style id="${aoiHaloStyleId}"><LineStyle><color>${kmlColor('#ff2b2b', .22)}</color><width>11</width></LineStyle><PolyStyle><color>${kmlColor('#ff2b2b', 0)}</color><fill>0</fill><outline>1</outline></PolyStyle></Style>`;
+  const aoiCoreStyle = `<Style id="${aoiCoreStyleId}"><LineStyle><color>${kmlColor('#e2231a', 1)}</color><width>4.5</width></LineStyle><PolyStyle><color>${kmlColor('#e2231a', 0)}</color><fill>0</fill><outline>1</outline></PolyStyle></Style>`;
+  const aoiFolder = aoiGeojson ? `<Folder><name>Area of Interest</name>${aoiHaloStyle}${aoiCoreStyle}<Folder><name>Glow</name>${aoiGeojson.features.map((f,i)=>featureToPlacemark(f,'AOI',i,aoiHaloStyleId)).join('')}</Folder><Folder><name>Boundary</name>${aoiGeojson.features.map((f,i)=>featureToPlacemark(f,'AOI',i,aoiCoreStyleId)).join('')}</Folder></Folder>` : '';
   const layerFolders = getCheckedAoiResults().map(r => {
     const styleId = 'style_' + sanitizeFilename(r.layerDef.key);
-    return `<Folder><name>${xmlEsc(r.layerDef.name)}</name>${kmlStyleBlockFor(r.layerDef, styleId)}${r.geojson.features.map((f,i)=>featureToPlacemark(f,r.layerDef.name,i,styleId)).join('')}</Folder>`;
+    const labelStyleId = 'lblstyle_' + sanitizeFilename(r.layerDef.key);
+    const labelPoints = labelPointPlacemarksFor(r, labelStyleId);
+    const labelsFolder = labelPoints ? `<Folder><name>${xmlEsc(r.layerDef.name)} Labels</name>${kmlLabelStyleBlockFor(r.layerDef, labelStyleId)}${labelPoints}</Folder>` : '';
+    return `<Folder><name>${xmlEsc(r.layerDef.name)}</name>${kmlStyleBlockFor(r.layerDef, styleId)}${r.geojson.features.map((f,i)=>featureToPlacemark(f,r.layerDef.name,i,styleId)).join('')}${labelsFolder}</Folder>`;
   }).join('');
   return `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>CSG Cadastral Export</name>${aoiFolder}${layerFolders}</Document></kml>`;
 }
@@ -1352,6 +1906,7 @@ async function exportKML(asKmz){
   } else {
     downloadBlob(new Blob([kml], { type:'application/vnd.google-earth.kml+xml' }), 'csg_cadastral_export.kml');
   }
+  downloadAttributesCsv();
 }
 
 /* ===================== EXPORT: SHAPEFILE ===================== */
@@ -1513,6 +2068,7 @@ async function exportShapefile(){
   if(!any){ setBusy(false); alert('No features to export.'); return; }
   const blob = await zip.generateAsync({ type:'blob' });
   downloadBlob(blob, 'csg_cadastral_export_shapefiles.zip');
+  downloadAttributesCsv();
 }
 
 /* ===================== EXPORT: GEOPACKAGE (via sql.js) ===================== */
@@ -1602,9 +2158,12 @@ async function exportGeoPackage(){
     db.run(`CREATE TABLE layer_styles (id INTEGER PRIMARY KEY AUTOINCREMENT, f_table_catalog TEXT, f_table_schema TEXT, f_table_name TEXT, f_geometry_column TEXT, styleName TEXT, styleQML TEXT, styleSLD TEXT, useAsDefault BOOLEAN, description TEXT, owner TEXT, ui TEXT, update_time DATETIME);`);
     db.run(`INSERT INTO gpkg_contents (table_name, data_type, identifier, description) VALUES ('layer_styles', 'attributes', 'layer_styles', 'QGIS layer style definitions')`);
 
-    checked.forEach(r => {
-      const table = sanitizeSqlIdent(r.layerDef.name);
-      const fieldDefs = buildSqlFieldDefs(r.geojson.features);
+    // A single helper writes one feature-table + matching layer_styles row —
+    // used for both the checked SG data layers and, below, the AOI boundary
+    // itself (which previously wasn't exported to the GeoPackage at all, even
+    // though KML already includes it via aoiFolder).
+    function writeGpkgLayer(table, layerDefLike, features, styleLabel){
+      const fieldDefs = buildSqlFieldDefs(features);
       const colsSql = fieldDefs.map(f => `"${f.name}" ${f.sqlType}`).join(', ');
       db.run(`CREATE TABLE "${table}" (fid INTEGER PRIMARY KEY AUTOINCREMENT, geom BLOB${colsSql ? ', '+colsSql : ''});`);
 
@@ -1613,7 +2172,7 @@ async function exportGeoPackage(){
       const stmt = db.prepare(`INSERT INTO "${table}" (${insertCols}) VALUES (${placeholders})`);
 
       let minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity;
-      r.geojson.features.forEach(f => {
+      features.forEach(f => {
         if(!f.geometry) return;
         const gpb = geometryToGPB(f.geometry, 4326);
         const bbox = geomBBox(f.geometry);
@@ -1628,15 +2187,28 @@ async function exportGeoPackage(){
       stmt.free();
 
       db.run(`INSERT INTO gpkg_contents (table_name,data_type,identifier,description,min_x,min_y,max_x,max_y,srs_id) VALUES (?, 'features', ?, ?, ?, ?, ?, ?, 4326)`,
-        [table, r.layerDef.name, r.layerDef.name, isFinite(minx)?minx:null, isFinite(miny)?miny:null, isFinite(maxx)?maxx:null, isFinite(maxy)?maxy:null]);
+        [table, layerDefLike.name, layerDefLike.name, isFinite(minx)?minx:null, isFinite(miny)?miny:null, isFinite(maxx)?maxx:null, isFinite(maxy)?maxy:null]);
       db.run(`INSERT INTO gpkg_geometry_columns (table_name, column_name, geometry_type_name, srs_id, z, m) VALUES (?, 'geom', 'GEOMETRY', 4326, 0, 0)`, [table]);
 
       db.run(`INSERT INTO layer_styles (f_table_catalog, f_table_schema, f_table_name, f_geometry_column, styleName, styleQML, styleSLD, useAsDefault, description, owner, ui, update_time) VALUES ('', '', ?, 'geom', ?, ?, NULL, 1, ?, '', NULL, ?)`,
-        [table, r.layerDef.name + ' (5D Geo style)', buildQml(r.layerDef), 'Symbology exported from the 5D Geo CSG Cadastral Viewer', new Date().toISOString()]);
+        [table, styleLabel, buildQml(layerDefLike), 'Symbology exported from the 5D Geo CSG Cadastral Viewer', new Date().toISOString()]);
+    }
+
+    checked.forEach(r => {
+      const table = sanitizeSqlIdent(r.layerDef.name);
+      writeGpkgLayer(table, r.layerDef, r.geojson.features, r.layerDef.name + ' (5D Geo style)');
     });
+
+    // AOI boundary itself — matches the on-map aoiLayer look (red outline, no fill).
+    if(aoiGeojson && aoiGeojson.features && aoiGeojson.features.length){
+      const aoiLayerDefLike = { name:'Area of Interest', type:'polygon', color:'#e2231a', weight:4.5, fillOpacity:0 };
+      const table = sanitizeSqlIdent(aoiLayerDefLike.name);
+      writeGpkgLayer(table, aoiLayerDefLike, aoiGeojson.features, 'Area of Interest (5D Geo style)');
+    }
 
     const bytes = db.export();
     downloadBlob(new Blob([bytes], { type:'application/geopackage+sqlite3' }), 'csg_cadastral_export.gpkg');
+    downloadAttributesCsv();
     db.close();
   } catch(e){
     console.error(e);
